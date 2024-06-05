@@ -28,7 +28,7 @@ class UsersStream(ZendeskStream):
     name = "users"
     path = "/api/v2/users.json"
     primary_keys = ["id"]
-    replication_key = "updated_at"
+    replication_key = "created_at"
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("name", th.StringType),

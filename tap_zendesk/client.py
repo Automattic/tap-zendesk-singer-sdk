@@ -88,7 +88,7 @@ class ZendeskStream(RESTStream):
         Returns:
             A dictionary of URL query parameters.
         """
-        params: dict = {"page[size]": 100}  # Set the page size to 100
+        params: dict = {"page[size]": 100, "sort_order": "asc"}  # Include sort_order
         if next_page_token:
             params["page[after]"] = next_page_token
         return params
@@ -138,6 +138,8 @@ class ZendeskStream(RESTStream):
         if end_date and end_date.tzinfo is None:
             end_date = end_date.replace(tzinfo=timezone.utc)
 
+        replication_key = self.replication_key
+
         paginator = self.get_new_paginator()
         next_page_token = None
 
@@ -161,7 +163,7 @@ class ZendeskStream(RESTStream):
                     self.logger.error(f"JSONDecodeError encountered while parsing record: {e}")
                     continue
 
-                record_date_str = record.get("updated_at")
+                record_date_str = record.get(replication_key)
                 if record_date_str:
                     record_date = datetime.fromisoformat(record_date_str)
                     if record_date.tzinfo is None:
