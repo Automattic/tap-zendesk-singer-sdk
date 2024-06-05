@@ -31,7 +31,7 @@ class ZendeskStream(RESTStream):
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
         subdomain = self.config.get("subdomain", "")
-        print(f'subdomain: {subdomain}')
+        self.logger.info(f'subdomain: {subdomain}')
         return f"https://{subdomain}.zendesk.com"
 
     records_jsonpath = "$.users[*]"  # Adjusted to match the correct JSON path for users.
@@ -125,7 +125,6 @@ class ZendeskStream(RESTStream):
         try:
             response_json = response.json()
             self.logger.debug(f"Response JSON: {response_json}")
-            print(response_json)  # Add this line to print the response
         except json.JSONDecodeError:
             self.logger.error("Unable to decode JSON response: %s", response.text)
             return
@@ -157,9 +156,20 @@ class ZendeskStream(RESTStream):
 
                 try:
                     record_json = json.loads(json.dumps(record))
+                    #self.logger.info(record_json)
                 except json.JSONDecodeError as e:
                     self.logger.error(f"JSONDecodeError encountered while parsing record: {e}")
                     continue
+
+                record_date_str = record.get("updated_at")
+                if record_date_str:
+                    record_date = datetime.fromisoformat(record_date_str)
+                    if record_date.tzinfo is None:
+                        record_date = record_date.replace(tzinfo=timezone.utc)
+                    if end_date and record_date > end_date:
+                        self.logger.info(
+                            f"Stopping data fetch as record date {record_date} exceeds end date {end_date}")
+                        return
 
                 yield record
 
