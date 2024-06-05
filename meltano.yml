@@ -1,31 +1,61 @@
 version: 1
 send_anonymous_usage_stats: true
-project_id: "tap-zendesk"
+project_id: tap-zendesk
 default_environment: test
 environments:
 - name: test
 plugins:
   extractors:
-  - name: "tap-zendesk"
-    namespace: "tap_zendesk"
+  - name: tap-zendesk
+    namespace: tap-zendesk
     pip_url: -e .
     capabilities:
-    - state
     - catalog
     - discover
-    - about
-    - stream-maps
-    config:
-      start_date: '2010-01-01T00:00:00Z'
+    - state
     settings:
-    # TODO: To configure using Meltano, declare settings and their types here:
-    - name: username
-    - name: password
-      kind: password
-      sensitive: true
+    - name: email
+      label: Email
+      description: This is the email you use to login to your Zendesk dashboard. For
+        API Authentication, `/token` is automatically appended to the email address
+        and is not required in the configuration.
+    - name: api_token
+      label: API Token
+      description: See 
+        https://support.zendesk.com/hc/en-us/articles/226022787-Generating-a-new-API-token-
+        for more details about generating an API Token.
+    - name: access_token
+      label: Access Token
+      description: To use OAuth, you will need to fetch an `access_token` from a configured
+        Zendesk integration.
+    - name: subdomain
+      label: Zendesk Subdomain
+      description: The subdomain of your Zendesk instance.
     - name: start_date
-      value: '2010-01-01T00:00:00Z'
+      kind: date_iso8601
+      label: Start Date
+      description: Determines how much historical data will be extracted. Please be
+        aware that the larger the time period and amount of data, the longer the initial
+        extraction can be expected to take.
+    - name: end_date
+      kind: date_iso8601
+      label: End Date
+      description: Sets a limit on how much data to extract in combination with start_date.
+        If passed, data would be loaded for date >= start_date and date < end_date.
+    - name: min_remain_rate_limit
+      kind: integer
+      label: Minimum Remain Rate Limit
+      description: Sets a limit to the remain rate that the tap will not will not
+        overtake (it will wait for the reset)
+    - name: ticket_paginate_by_time
+      kind: boolean
+      label: Ticket pagination by Time
+      description: (Default True) Sets ticket pagination by time-based (True) or cursor-based
+        (False).
   loaders:
+  - name: target-parquet
+    variant: automattic
+    pip_url: git+https://github.com/Automattic/target-parquet.git
   - name: target-jsonl
     variant: andyh1203
     pip_url: target-jsonl

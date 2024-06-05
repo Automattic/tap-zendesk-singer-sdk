@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import sys
 from typing import Any, Callable, Iterable
+import json
+from datetime import datetime, timezone
 
 import requests
-from singer_sdk.authenticators import APIKeyAuthenticator
+from singer_sdk.authenticators import BasicAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
-from singer_sdk.pagination import BaseAPIPaginator  # noqa: TCH002
+from singer_sdk.pagination import JSONPathPaginator
 from singer_sdk.streams import RESTStream
 
 if sys.version_info >= (3, 9):
@@ -28,26 +30,28 @@ class ZendeskStream(RESTStream):
     @property
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
-        # TODO: hardcode a value here, or retrieve it from self.config
-        return "https://api.mysample.com"
+        subdomain = self.config.get("subdomain", "")
+        print(f'subdomain: {subdomain}')
+        return f"https://{subdomain}.zendesk.com"
 
-    records_jsonpath = "$[*]"  # Or override `parse_response`.
+    records_jsonpath = "$.users[*]"  # Adjusted to match the correct JSON path for users.
 
     # Set this value or override `get_new_paginator`.
-    next_page_token_jsonpath = "$.next_page"  # noqa: S105
+    next_page_token_jsonpath = "$.meta.after_cursor"
 
     @property
-    def authenticator(self) -> APIKeyAuthenticator:
+    def authenticator(self) -> BasicAuthenticator:
         """Return a new authenticator object.
 
         Returns:
             An authenticator instance.
         """
-        return APIKeyAuthenticator.create_for_stream(
+        email = self.config.get("email", "")
+        api_token = self.config.get("api_token", "")
+        return BasicAuthenticator.create_for_stream(
             self,
-            key="x-api-key",
-            value=self.config.get("auth_token", ""),
-            location="header",
+            username=f"{email}/token",
+            password=api_token
         )
 
     @property
@@ -60,29 +64,20 @@ class ZendeskStream(RESTStream):
         headers = {}
         if "user_agent" in self.config:
             headers["User-Agent"] = self.config.get("user_agent")
-        # If not using an authenticator, you may also provide inline auth headers:
-        # headers["Private-Token"] = self.config.get("auth_token")  # noqa: ERA001
         return headers
 
-    def get_new_paginator(self) -> BaseAPIPaginator:
+    def get_new_paginator(self) -> JSONPathPaginator:
         """Create a new pagination helper instance.
-
-        If the source API can make use of the `next_page_token_jsonpath`
-        attribute, or it contains a `X-Next-Page` header in the response
-        then you can remove this method.
-
-        If you need custom pagination that uses page numbers, "next" links, or
-        other approaches, please read the guide: https://sdk.meltano.com/en/v0.25.0/guides/pagination-classes.html.
 
         Returns:
             A pagination helper instance.
         """
-        return super().get_new_paginator()
+        return JSONPathPaginator(self.next_page_token_jsonpath)
 
     def get_url_params(
-        self,
-        context: dict | None,  # noqa: ARG002
-        next_page_token: Any | None,  # noqa: ANN401
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
     ) -> dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization.
 
@@ -93,12 +88,9 @@ class ZendeskStream(RESTStream):
         Returns:
             A dictionary of URL query parameters.
         """
-        params: dict = {}
+        params: dict = {"page[size]": 100}  # Set the page size to 100
         if next_page_token:
-            params["page"] = next_page_token
-        if self.replication_key:
-            params["sort"] = "asc"
-            params["order_by"] = self.replication_key
+            params["page[after]"] = next_page_token
         return params
 
     def prepare_request_payload(
@@ -108,8 +100,6 @@ class ZendeskStream(RESTStream):
     ) -> dict | None:
         """Prepare the data payload for the REST API request.
 
-        By default, no payload will be sent (return None).
-
         Args:
             context: The stream context.
             next_page_token: The next page index or value.
@@ -117,7 +107,6 @@ class ZendeskStream(RESTStream):
         Returns:
             A dictionary with the JSON body for a POST requests.
         """
-        # TODO: Delete this method if no payload is required. (Most REST APIs.)
         return None
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
@@ -129,8 +118,55 @@ class ZendeskStream(RESTStream):
         Yields:
             Each record from the source.
         """
-        # TODO: Parse response body and return a set of records.
-        yield from extract_jsonpath(self.records_jsonpath, input=response.json())
+        if not response.content:
+            self.logger.warning("Received empty response for URL: %s", response.url)
+            return
+
+        try:
+            response_json = response.json()
+            self.logger.debug(f"Response JSON: {response_json}")
+            print(response_json)  # Add this line to print the response
+        except json.JSONDecodeError:
+            self.logger.error("Unable to decode JSON response: %s", response.text)
+            return
+
+        yield from extract_jsonpath(self.records_jsonpath, input=response_json)
+
+    def get_records(self, context):
+        end_date_str = self.config.get("end_date")
+        end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
+
+        if end_date and end_date.tzinfo is None:
+            end_date = end_date.replace(tzinfo=timezone.utc)
+
+        paginator = self.get_new_paginator()
+        next_page_token = None
+
+        while True:
+            prepared_request = self.prepare_request(context, next_page_token)
+            response = self._request(prepared_request, context)
+            if not response:
+                self.logger.error("Received empty response")
+                break
+
+            records = self.parse_response(response)
+            for record in records:
+                if not record:
+                    self.logger.error("Received empty record")
+                    continue
+
+                try:
+                    record_json = json.loads(json.dumps(record))
+                except json.JSONDecodeError as e:
+                    self.logger.error(f"JSONDecodeError encountered while parsing record: {e}")
+                    continue
+
+                yield record
+
+            next_page_token = paginator.get_next(response)
+            self.logger.info(f"Next page token: {next_page_token}")
+            if not next_page_token:
+                break
 
     def post_process(
         self,
@@ -146,5 +182,4 @@ class ZendeskStream(RESTStream):
         Returns:
             The updated record dictionary, or ``None`` to skip the record.
         """
-        # TODO: Delete this method if not needed.
         return row
