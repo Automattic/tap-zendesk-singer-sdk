@@ -202,3 +202,23 @@ class TicketsStream(ZendeskStream):
         params = super().get_url_params(context, next_page_token)
         params["sort"] = "updated_at"
         return params
+
+class TagsStream(ZendeskStream):
+    name = "tags"
+    path = "/api/v2/tags.json"
+    primary_keys = ["name"]
+    records_jsonpath = "$.tags[*]"
+    next_page_token_jsonpath = "$.meta.after_cursor"
+    schema = th.PropertiesList(
+        th.Property("count", th.IntegerType),
+        th.Property("name", th.StringType),
+    ).to_dict()
+
+    def get_url_params(
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        """Return a dictionary of values to be used in URL parameterization."""
+        params = super().get_url_params(context, next_page_token)
+        return params
