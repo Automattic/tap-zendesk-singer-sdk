@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import sys
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Optional, Dict
+
 import json
+import time
 from datetime import datetime, timezone
 
 import requests
@@ -12,6 +14,7 @@ from singer_sdk.authenticators import BasicAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
 from singer_sdk.pagination import JSONPathPaginator
 from singer_sdk.streams import RESTStream
+from requests import Response, PreparedRequest
 
 if sys.version_info >= (3, 9):
     import importlib.resources as importlib_resources
@@ -26,6 +29,11 @@ SCHEMAS_DIR = importlib_resources.files(__package__) / "schemas"
 
 class ZendeskStream(RESTStream):
     """Zendesk stream class."""
+
+    def __init__(self, tap, name=None, schema=None, path=None):
+        super().__init__(tap, name, schema, path)
+        self.last_request_time = 0  # Initialize last_request_time
+        self.allow_redirects = False
 
     @property
     def url_base(self) -> str:
@@ -130,6 +138,48 @@ class ZendeskStream(RESTStream):
             return
 
         yield from extract_jsonpath(self.records_jsonpath, input=response_json)
+
+    def _request(
+        self,
+        prepared_request: PreparedRequest,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Response:
+        """Send a HTTP request with rate limiting.
+
+        Args:
+            prepared_request: The prepared HTTP request.
+            context: Stream partition or context dictionary.
+
+        Returns:
+            The HTTP response object.
+        """
+        # Calculate the time difference between the current time and the last request time
+        time_since_last_request = time.time() - self.last_request_time
+
+        # Ensure we don't exceed 250 requests per minute (1 request per 0.24 seconds)
+        if time_since_last_request < 0.24:
+            time.sleep(0.24 - time_since_last_request)
+
+        response = self.requests_session.send(
+            prepared_request,
+            timeout=self.timeout,
+            allow_redirects=self.allow_redirects,
+        )
+
+        self.last_request_time = time.time()
+
+        self._write_request_duration_log(
+            endpoint=self.path,
+            response=response,
+            context=context,
+            extra_tags={"url": prepared_request.path_url}
+            if self._LOG_REQUEST_METRIC_URLS
+            else None,
+        )
+
+        self.validate_response(response)
+        self.logger.info("Response received successfully.")
+        return response
 
     def get_records(self, context):
         end_date_str = self.config.get("end_date")
