@@ -208,13 +208,13 @@ class ZendeskStream(RESTStream):
 
                 try:
                     record_json = json.loads(json.dumps(record))
-                    #self.logger.info(record_json)
                 except json.JSONDecodeError as e:
                     self.logger.error(f"JSONDecodeError encountered while parsing record: {e}")
                     continue
 
                 record_date_str = record.get(replication_key)
                 if record_date_str:
+                    self.logger.info(record_date_str)
                     record_date = datetime.fromisoformat(record_date_str)
                     if record_date.tzinfo is None:
                         record_date = record_date.replace(tzinfo=timezone.utc)
