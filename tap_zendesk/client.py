@@ -42,10 +42,10 @@ class ZendeskStream(RESTStream):
         self.logger.info(f'subdomain: {subdomain}')
         return f"https://{subdomain}.zendesk.com"
 
-    records_jsonpath = "$.users[*]"  # Adjusted to match the correct JSON path for users.
-
-    # Set this value or override `get_new_paginator`.
-    next_page_token_jsonpath = "$.meta.after_cursor"
+    # records_jsonpath = "$.users[*]"  # Adjusted to match the correct JSON path for users.
+    #
+    # # Set this value or override `get_new_paginator`.
+    # next_page_token_jsonpath = "$.meta.after_cursor"
 
     @property
     def authenticator(self) -> BasicAuthenticator:

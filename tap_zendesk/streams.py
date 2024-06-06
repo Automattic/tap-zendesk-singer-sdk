@@ -29,6 +29,8 @@ class UsersStream(ZendeskStream):
     path = "/api/v2/users.json"
     primary_keys = ["id"]
     replication_key = "created_at"
+    records_jsonpath = "$.users[*]"  # Adjusted to match the correct JSON path for users.
+    next_page_token_jsonpath = "$.meta.after_cursor"
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("name", th.StringType),
@@ -102,5 +104,101 @@ class UsersStream(ZendeskStream):
     ) -> dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization."""
         params = super().get_url_params(context, next_page_token)
-        params["role"] = "end-user"
+        return params
+
+
+class TicketsStream(ZendeskStream):
+    name = "tickets"
+    path = "/api/v2/tickets.json"
+    primary_keys = ["id"]
+    replication_key = "updated_at"
+    records_jsonpath = "$.tickets[*]"
+    next_page_token_jsonpath = "$.meta.after_cursor"
+    schema = th.PropertiesList(
+        th.Property("id", th.IntegerType),
+        th.Property("organization_id", th.IntegerType),
+        th.Property("requester_id", th.IntegerType),
+        th.Property("problem_id", th.IntegerType),
+        th.Property("is_public", th.BooleanType),
+        th.Property("description", th.StringType),
+        th.Property("follower_ids", th.ArrayType(th.IntegerType)),
+        th.Property("submitter_id", th.IntegerType),
+        th.Property("generated_timestamp", th.IntegerType),
+        th.Property("brand_id", th.IntegerType),
+        th.Property("group_id", th.IntegerType),
+        th.Property("type", th.StringType),
+        th.Property("recipient", th.StringType),
+        th.Property("collaborator_ids", th.ArrayType(th.IntegerType)),
+        th.Property("tags", th.ArrayType(th.StringType)),
+        th.Property("has_incidents", th.BooleanType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("raw_subject", th.StringType),
+        th.Property("status", th.StringType),
+        th.Property("updated_at", th.DateTimeType),
+        th.Property("url", th.StringType),
+        th.Property("allow_channelback", th.BooleanType),
+        th.Property("allow_attachments", th.BooleanType),
+        th.Property("due_at", th.DateTimeType),
+        th.Property("followup_ids", th.ArrayType(th.IntegerType)),
+        th.Property("priority", th.StringType),
+        th.Property("assignee_id", th.IntegerType),
+        th.Property("subject", th.StringType),
+        th.Property("external_id", th.StringType),
+        th.Property("via", th.ObjectType(
+            th.Property("source", th.ObjectType(
+                th.Property("from", th.ObjectType(
+                    th.Property("name", th.StringType),
+                    th.Property("ticket_id", th.IntegerType),
+                    th.Property("address", th.StringType),
+                    th.Property("subject", th.StringType),
+                    th.Property("brand_id", th.StringType),
+                    th.Property("formatted_phone", th.StringType),
+                    th.Property("phone", th.StringType),
+                    th.Property("profile_url", th.StringType),
+                    th.Property("twitter_id", th.StringType),
+                    th.Property("username", th.StringType),
+                    th.Property("channel", th.StringType)
+                )),
+                th.Property("to", th.ObjectType(
+                    th.Property("address", th.StringType),
+                    th.Property("name", th.StringType),
+                    th.Property("brand_id", th.StringType),
+                    th.Property("formatted_phone", th.StringType),
+                    th.Property("phone", th.StringType),
+                    th.Property("profile_url", th.StringType),
+                    th.Property("twitter_id", th.StringType),
+                    th.Property("username", th.StringType)
+                )),
+                th.Property("rel", th.StringType)
+            )),
+            th.Property("channel", th.StringType)
+        )),
+        th.Property("ticket_form_id", th.IntegerType),
+        th.Property("satisfaction_rating", th.ObjectType(
+            th.Property("id", th.IntegerType),
+            th.Property("assignee_id", th.IntegerType),
+            th.Property("group_id", th.IntegerType),
+            th.Property("reason_id", th.IntegerType),
+            th.Property("requester_id", th.IntegerType),
+            th.Property("ticket_id", th.IntegerType),
+            th.Property("updated_at", th.DateTimeType),
+            th.Property("created_at", th.DateTimeType),
+            th.Property("url", th.StringType),
+            th.Property("score", th.StringType),
+            th.Property("reason", th.StringType),
+            th.Property("comment", th.StringType)
+        )),
+        th.Property("sharing_agreement_ids", th.ArrayType(th.IntegerType)),
+        th.Property("email_cc_ids", th.ArrayType(th.IntegerType)),
+        th.Property("forum_topic_id", th.IntegerType)
+    ).to_dict()
+
+    def get_url_params(
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        """Return a dictionary of values to be used in URL parameterization."""
+        params = super().get_url_params(context, next_page_token)
+        params["sort"] = "updated_at"
         return params
