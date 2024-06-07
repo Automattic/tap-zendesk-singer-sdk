@@ -194,6 +194,7 @@ class TicketsStream(ZendeskStream):
         params["sort"] = "updated_at"
         return params
 
+
 class TagsStream(ZendeskStream):
     name = "tags"
     path = "/api/v2/tags.json"
@@ -203,4 +204,27 @@ class TagsStream(ZendeskStream):
     schema = th.PropertiesList(
         th.Property("count", th.IntegerType),
         th.Property("name", th.StringType),
+    ).to_dict()
+
+
+class SatisfactionRatingsStream(ZendeskStream):
+    name = "satisfaction_ratings"
+    path = "/api/v2/satisfaction_ratings.json"
+    primary_keys = ["id"]
+    replication_key = "created_at"
+    records_jsonpath = "$.satisfaction_ratings[*]"
+    next_page_token_jsonpath = "$.meta.after_cursor"
+    schema = th.PropertiesList(
+        th.Property("id", th.IntegerType),
+        th.Property("assignee_id", th.IntegerType),
+        th.Property("group_id", th.IntegerType),
+        th.Property("reason_id", th.IntegerType),
+        th.Property("requester_id", th.IntegerType),
+        th.Property("ticket_id", th.IntegerType),
+        th.Property("updated_at", th.DateTimeType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("url", th.StringType),
+        th.Property("score", th.StringType),
+        th.Property("reason", th.StringType),
+        th.Property("comment", th.StringType)
     ).to_dict()
