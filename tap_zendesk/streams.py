@@ -252,7 +252,7 @@ class SatisfactionRatingsStream(ZendeskStream):
     name = "satisfaction_ratings"
     path = "/api/v2/satisfaction_ratings.json"
     primary_keys = ["id"]
-    replication_key = "created_at"
+    replication_key = "updated_at"
     records_jsonpath = "$.satisfaction_ratings[*]"
     next_page_token_jsonpath = "$.meta.after_cursor"
     schema = th.PropertiesList(
