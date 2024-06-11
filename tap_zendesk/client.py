@@ -200,7 +200,10 @@ class ZendeskStream(RESTStream):
                 self.logger.error("Received empty response")
                 break
 
-            records = self.parse_response(response)
+            records = list(self.parse_response(response))
+
+            self.logger.info(f'number_of_records: {len(records)}')
+
             for record in records:
                 if not record:
                     self.logger.error("Received empty record")
@@ -225,10 +228,30 @@ class ZendeskStream(RESTStream):
 
                 yield record
 
-            next_page_token = response.json().get('after_cursor')
+            next_page_token = self.get_next_page_token(response)
             self.logger.info(f"Next page token: {next_page_token}")
-            if not next_page_token or response.json().get('end_of_stream'):
+            if not next_page_token or self.is_end_of_stream(response):
                 break
+
+    def get_next_page_token(self, response):
+        """Get the next page token from the response, if applicable."""
+        if 'after_cursor' in response.json():
+            next_page_token = response.json().get('after_cursor')
+            self.logger.info(f"Next page token (cursor): {next_page_token}")
+            return next_page_token
+        next_page_token = response.json().get('meta', {}).get('after_cursor')
+        self.logger.info(f"Next page token (meta): {next_page_token}")
+        return next_page_token
+
+    def is_end_of_stream(self, response):
+        """Determine if the end of stream has been reached."""
+        if 'end_of_stream' in response.json():
+            end_of_stream = response.json().get('end_of_stream')
+            self.logger.info(f"End of stream: {end_of_stream}")
+            return end_of_stream
+        end_of_stream = not response.json().get('meta', {}).get('after_cursor')
+        self.logger.info(f"End of stream (meta): {end_of_stream}")
+        return end_of_stream
 
     def post_process(
         self,
