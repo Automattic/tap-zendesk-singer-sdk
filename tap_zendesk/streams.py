@@ -126,11 +126,11 @@ class UsersStream(ZendeskStream):
 
 class TicketsStream(ZendeskStream):
     name = "tickets"
-    path = "/api/v2/tickets.json"
+    path = "/api/v2/incremental/tickets/cursor.json"
     primary_keys = ["id"]
     replication_key = "updated_at"
     records_jsonpath = "$.tickets[*]"
-    next_page_token_jsonpath = "$.meta.after_cursor"
+    next_page_token_jsonpath = "$.after_cursor"
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("organization_id", th.IntegerType),
@@ -216,9 +216,24 @@ class TicketsStream(ZendeskStream):
             next_page_token: Any | None,
     ) -> dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization."""
-        params = super().get_url_params(context, next_page_token)
-        params["sort"] = "updated_at"
+        params = {"per_page": 1000}
+        if next_page_token:
+            params["cursor"] = next_page_token
+        else:
+            start_time = self.get_start_time(context)
+            params["start_time"] = start_time
         return params
+
+    def get_start_time(self, context: dict | None) -> int:
+        """Get the start time for the initial incremental export."""
+        replication_key_value = self.get_starting_replication_key_value(context)
+        if replication_key_value:
+            # Parse the string to a datetime object
+            record_date = datetime.fromisoformat(replication_key_value)
+            start_time = int(record_date.timestamp())
+        else:
+            start_time = int(time.time()) - 86400  # 24 hours ago as a default
+        return start_time
 
 
 class TagsStream(ZendeskStream):
