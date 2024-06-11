@@ -225,9 +225,9 @@ class ZendeskStream(RESTStream):
 
                 yield record
 
-            next_page_token = paginator.get_next(response)
+            next_page_token = response.json().get('after_cursor')
             self.logger.info(f"Next page token: {next_page_token}")
-            if not next_page_token:
+            if not next_page_token or response.json().get('end_of_stream'):
                 break
 
     def post_process(

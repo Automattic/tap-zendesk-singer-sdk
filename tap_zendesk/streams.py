@@ -5,6 +5,7 @@ import sys
 import typing as t
 from typing import Any, Iterable
 import json
+import time
 from datetime import datetime, timezone
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
@@ -26,7 +27,7 @@ SCHEMAS_DIR = importlib_resources.files(__package__) / "schemas"
 
 class UsersStream(ZendeskStream):
     name = "users"
-    path = "/api/v2/users.json"
+    path = "/api/v2/incremental/users/cursor.json"
     primary_keys = ["id"]
     replication_key = "created_at"
     records_jsonpath = "$.users[*]"  # Adjusted to match the correct JSON path for users.
@@ -96,6 +97,31 @@ class UsersStream(ZendeskStream):
         th.Property("report_csv", th.BooleanType),
         th.Property("iana_time_zone", th.StringType)
     ).to_dict()
+
+    def get_url_params(
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        """Return a dictionary of values to be used in URL parameterization."""
+        params = {"per_page": 1000}
+        if next_page_token:
+            params["cursor"] = next_page_token
+        else:
+            start_time = self.get_start_time(context)
+            params["start_time"] = start_time
+        return params
+
+    def get_start_time(self, context: dict | None) -> int:
+        """Get the start time for the initial incremental export."""
+        replication_key_value = self.get_starting_replication_key_value(context)
+        if replication_key_value:
+            # Parse the string to a datetime object
+            record_date = datetime.fromisoformat(replication_key_value)
+            start_time = int(record_date.timestamp())
+        else:
+            start_time = int(time.time()) - 86400  # 24 hours ago as a default
+        return start_time
 
 
 class TicketsStream(ZendeskStream):
