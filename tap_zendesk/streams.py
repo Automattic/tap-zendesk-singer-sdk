@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sys
 import typing as t
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 import json
 import time
 from datetime import datetime, timezone
@@ -184,6 +184,118 @@ class TicketsStream(IncrementalZendeskStream):
         th.Property("email_cc_ids", th.ArrayType(th.IntegerType)),
         th.Property("forum_topic_id", th.IntegerType)
     ).to_dict()
+
+    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+        """Return a context dictionary for child streams."""
+        self.logger.info(f"Creating child context for ticket_id: {record['id']}")
+        return {
+            "ticket_id": record["id"],
+        }
+
+
+class TicketCommentsStream(NonIncrementalZendeskStream):
+    name = "ticket_comments"
+    parent_stream_type = TicketsStream
+    path = "/api/v2/tickets/{ticket_id}/comments.json"
+    primary_keys = ["id"]
+    replication_key = "created_at"
+    records_jsonpath = "$.comments[*]"
+    next_page_token_jsonpath = "$.meta.after_cursor"
+    schema = th.PropertiesList(
+        th.Property("created_at", th.DateTimeType),
+        th.Property("body", th.StringType),
+        th.Property("id", th.IntegerType),
+        th.Property("ticket_id", th.IntegerType),
+        th.Property("type", th.StringType),
+        th.Property("html_body", th.StringType),
+        th.Property("plain_body", th.StringType),
+        th.Property("public", th.BooleanType),
+        th.Property("audit_id", th.IntegerType),
+        th.Property("author_id", th.IntegerType),
+        th.Property("via", th.ObjectType(
+            th.Property("channel", th.StringType),
+            th.Property("source", th.ObjectType(
+                th.Property("from", th.ObjectType(
+                    th.Property("ticket_ids", th.ArrayType(th.IntegerType)),
+                    th.Property("subject", th.StringType),
+                    th.Property("name", th.StringType),
+                    th.Property("address", th.StringType),
+                    th.Property("original_recipients", th.ArrayType(th.StringType)),
+                    th.Property("id", th.IntegerType),
+                    th.Property("ticket_id", th.IntegerType),
+                    th.Property("deleted", th.BooleanType),
+                    th.Property("title", th.StringType)
+                )),
+                th.Property("to", th.ObjectType(
+                    th.Property("name", th.StringType),
+                    th.Property("address", th.StringType)
+                )),
+                th.Property("rel", th.StringType)
+            )),
+        )),
+        th.Property("metadata", th.ObjectType(
+            th.Property("custom", th.ObjectType(additional_properties=True)),
+            th.Property("trusted", th.BooleanType),
+            th.Property("notifications_suppressed_for", th.ArrayType(th.IntegerType)),
+            th.Property("flags_options", th.ObjectType(
+                th.Property("2", th.ObjectType(
+                    th.Property("trusted", th.BooleanType)
+                )),
+                th.Property("11", th.ObjectType(
+                    th.Property("trusted", th.BooleanType),
+                    th.Property("message", th.ObjectType(
+                        th.Property("user", th.StringType)
+                    ))
+                ))
+            )),
+            th.Property("flags", th.ArrayType(th.IntegerType)),
+            th.Property("system", th.ObjectType(
+                th.Property("location", th.StringType),
+                th.Property("longitude", th.NumberType),
+                th.Property("message_id", th.StringType),
+                th.Property("raw_email_identifier", th.StringType),
+                th.Property("ip_address", th.StringType),
+                th.Property("json_email_identifier", th.StringType),
+                th.Property("client", th.StringType),
+                th.Property("latitude", th.NumberType)
+            ))
+        )),
+        th.Property("attachments", th.ArrayType(th.ObjectType(
+            th.Property("id", th.IntegerType),
+            th.Property("size", th.IntegerType),
+            th.Property("url", th.StringType),
+            th.Property("inline", th.BooleanType),
+            th.Property("height", th.IntegerType),
+            th.Property("width", th.IntegerType),
+            th.Property("content_url", th.StringType),
+            th.Property("mapped_content_url", th.StringType),
+            th.Property("content_type", th.StringType),
+            th.Property("file_name", th.StringType),
+            th.Property("thumbnails", th.ArrayType(th.ObjectType(
+                th.Property("id", th.IntegerType),
+                th.Property("size", th.IntegerType),
+                th.Property("url", th.StringType),
+                th.Property("inline", th.BooleanType),
+                th.Property("height", th.IntegerType),
+                th.Property("width", th.IntegerType),
+                th.Property("content_url", th.StringType),
+                th.Property("mapped_content_url", th.StringType),
+                th.Property("content_type", th.StringType),
+                th.Property("file_name", th.StringType)
+            )))
+        )))
+    ).to_dict()
+
+    def get_url_params(
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        """Return a dictionary of values to be used in URL parameterization."""
+        params = {"sort": "created_at"}
+        if next_page_token:
+            params["page[after]"] = next_page_token
+        return params
 
 
 class TagsStream(NonIncrementalZendeskStream):

@@ -177,6 +177,11 @@ class ZendeskStream(RESTStream):
             else None,
         )
 
+        # Check for 404 Not Found and log a warning
+        if response.status_code == 404:
+            self.logger.warning(f"Received 404 for URL: {response.url}")
+            return None
+
         self.validate_response(response)
         self.logger.info("Response received successfully.")
         return response
