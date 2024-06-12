@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timezone
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
-from tap_zendesk.client import ZendeskStream
+from tap_zendesk.client import IncrementalZendeskStream, NonIncrementalZendeskStream
 import requests
 
 
@@ -25,7 +25,7 @@ SCHEMAS_DIR = importlib_resources.files(__package__) / "schemas"
 #       - Copy-paste as many times as needed to create multiple stream types.
 
 
-class UsersStream(ZendeskStream):
+class UsersStream(IncrementalZendeskStream):
     name = "users"
     path = "/api/v2/incremental/users/cursor.json"
     primary_keys = ["id"]
@@ -98,33 +98,8 @@ class UsersStream(ZendeskStream):
         th.Property("iana_time_zone", th.StringType)
     ).to_dict()
 
-    def get_url_params(
-            self,
-            context: dict | None,
-            next_page_token: Any | None,
-    ) -> dict[str, Any]:
-        """Return a dictionary of values to be used in URL parameterization."""
-        params = {"per_page": 1000}
-        if next_page_token:
-            params["cursor"] = next_page_token
-        else:
-            start_time = self.get_start_time(context)
-            params["start_time"] = start_time
-        return params
 
-    def get_start_time(self, context: dict | None) -> int:
-        """Get the start time for the initial incremental export."""
-        replication_key_value = self.get_starting_replication_key_value(context)
-        if replication_key_value:
-            # Parse the string to a datetime object
-            record_date = datetime.fromisoformat(replication_key_value)
-            start_time = int(record_date.timestamp())
-        else:
-            start_time = int(time.time()) - 86400  # 24 hours ago as a default
-        return start_time
-
-
-class TicketsStream(ZendeskStream):
+class TicketsStream(IncrementalZendeskStream):
     name = "tickets"
     path = "/api/v2/incremental/tickets/cursor.json"
     primary_keys = ["id"]
@@ -210,33 +185,8 @@ class TicketsStream(ZendeskStream):
         th.Property("forum_topic_id", th.IntegerType)
     ).to_dict()
 
-    def get_url_params(
-            self,
-            context: dict | None,
-            next_page_token: Any | None,
-    ) -> dict[str, Any]:
-        """Return a dictionary of values to be used in URL parameterization."""
-        params = {"per_page": 1000}
-        if next_page_token:
-            params["cursor"] = next_page_token
-        else:
-            start_time = self.get_start_time(context)
-            params["start_time"] = start_time
-        return params
 
-    def get_start_time(self, context: dict | None) -> int:
-        """Get the start time for the initial incremental export."""
-        replication_key_value = self.get_starting_replication_key_value(context)
-        if replication_key_value:
-            # Parse the string to a datetime object
-            record_date = datetime.fromisoformat(replication_key_value)
-            start_time = int(record_date.timestamp())
-        else:
-            start_time = int(time.time()) - 86400  # 24 hours ago as a default
-        return start_time
-
-
-class TagsStream(ZendeskStream):
+class TagsStream(NonIncrementalZendeskStream):
     name = "tags"
     path = "/api/v2/tags.json"
     primary_keys = ["name"]
@@ -248,7 +198,7 @@ class TagsStream(ZendeskStream):
     ).to_dict()
 
 
-class SatisfactionRatingsStream(ZendeskStream):
+class SatisfactionRatingsStream(NonIncrementalZendeskStream):
     name = "satisfaction_ratings"
     path = "/api/v2/satisfaction_ratings.json"
     primary_keys = ["id"]

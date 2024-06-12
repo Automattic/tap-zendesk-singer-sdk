@@ -268,3 +268,43 @@ class ZendeskStream(RESTStream):
             The updated record dictionary, or ``None`` to skip the record.
         """
         return row
+
+
+class IncrementalZendeskStream(ZendeskStream):
+    def get_url_params(
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        """Return a dictionary of values to be used in URL parameterization."""
+        params = {"per_page": 1000}
+        if next_page_token:
+            params["cursor"] = next_page_token
+        else:
+            start_time = self.get_start_time(context)
+            params["start_time"] = start_time
+        return params
+
+    def get_start_time(self, context: dict | None) -> int:
+        """Get the start time for the initial incremental export."""
+        replication_key_value = self.get_starting_replication_key_value(context)
+        if replication_key_value:
+            # Parse the string to a datetime object
+            record_date = datetime.fromisoformat(replication_key_value)
+            start_time = int(record_date.timestamp())
+        else:
+            start_time = int(time.time()) - 86400  # 24 hours ago as a default
+        return start_time
+
+
+class NonIncrementalZendeskStream(ZendeskStream):
+    def get_url_params(
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        """Return a dictionary of values to be used in URL parameterization."""
+        params: dict = {"page[size]": 100, "sort_order": "asc"}  # Include sort_order
+        if next_page_token:
+            params["page[after]"] = next_page_token
+        return params
