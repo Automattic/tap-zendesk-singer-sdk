@@ -39,13 +39,8 @@ class ZendeskStream(RESTStream):
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
         subdomain = self.config.get("subdomain", "")
-        self.logger.info(f'subdomain: {subdomain}')
+        self.logger.debug(f'subdomain: {subdomain}')
         return f"https://{subdomain}.zendesk.com"
-
-    # records_jsonpath = "$.users[*]"  # Adjusted to match the correct JSON path for users.
-    #
-    # # Set this value or override `get_new_paginator`.
-    # next_page_token_jsonpath = "$.meta.after_cursor"
 
     @property
     def authenticator(self) -> BasicAuthenticator:
@@ -183,7 +178,7 @@ class ZendeskStream(RESTStream):
             return None
 
         self.validate_response(response)
-        self.logger.info("Response received successfully.")
+        self.logger.debug("Response received successfully.")
         return response
 
     def get_records(self, context):
@@ -205,9 +200,7 @@ class ZendeskStream(RESTStream):
                 self.logger.error("Received empty response")
                 break
 
-            records = list(self.parse_response(response))
-
-            self.logger.info(f'number_of_records: {len(records)}')
+            records = self.parse_response(response)
 
             for record in records:
                 if not record:
@@ -222,7 +215,7 @@ class ZendeskStream(RESTStream):
 
                 record_date_str = record.get(replication_key)
                 if record_date_str:
-                    self.logger.info(record_date_str)
+                    self.logger.debug(record_date_str)
                     record_date = datetime.fromisoformat(record_date_str)
                     if record_date.tzinfo is None:
                         record_date = record_date.replace(tzinfo=timezone.utc)
@@ -234,7 +227,7 @@ class ZendeskStream(RESTStream):
                 yield record
 
             next_page_token = self.get_next_page_token(response)
-            self.logger.info(f"Next page token: {next_page_token}")
+            self.logger.debug(f"Next page token: {next_page_token}")
             if not next_page_token or self.is_end_of_stream(response):
                 break
 
@@ -242,20 +235,20 @@ class ZendeskStream(RESTStream):
         """Get the next page token from the response, if applicable."""
         if 'after_cursor' in response.json():
             next_page_token = response.json().get('after_cursor')
-            self.logger.info(f"Next page token (cursor): {next_page_token}")
+            self.logger.debug(f"Next page token (cursor): {next_page_token}")
             return next_page_token
         next_page_token = response.json().get('meta', {}).get('after_cursor')
-        self.logger.info(f"Next page token (meta): {next_page_token}")
+        self.logger.debug(f"Next page token (meta): {next_page_token}")
         return next_page_token
 
     def is_end_of_stream(self, response):
         """Determine if the end of stream has been reached."""
         if 'end_of_stream' in response.json():
             end_of_stream = response.json().get('end_of_stream')
-            self.logger.info(f"End of stream: {end_of_stream}")
+            self.logger.debug(f"End of stream: {end_of_stream}")
             return end_of_stream
         end_of_stream = not response.json().get('meta', {}).get('after_cursor')
-        self.logger.info(f"End of stream (meta): {end_of_stream}")
+        self.logger.debug(f"End of stream (meta): {end_of_stream}")
         return end_of_stream
 
     def post_process(

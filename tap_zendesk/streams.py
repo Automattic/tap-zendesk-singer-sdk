@@ -187,7 +187,7 @@ class TicketsStream(IncrementalZendeskStream):
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Return a context dictionary for child streams."""
-        self.logger.info(f"Creating child context for ticket_id: {record['id']}")
+        self.logger.debug(f"Creating child context for ticket_id: {record['id']}")
         return {
             "ticket_id": record["id"],
         }
