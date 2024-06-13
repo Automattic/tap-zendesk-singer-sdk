@@ -198,7 +198,6 @@ class TicketCommentsStream(NonIncrementalZendeskStream):
     parent_stream_type = TicketsStream
     path = "/api/v2/tickets/{ticket_id}/comments.json"
     primary_keys = ["id"]
-    replication_key = "created_at"
     records_jsonpath = "$.comments[*]"
     next_page_token_jsonpath = "$.meta.after_cursor"
     schema = th.PropertiesList(
@@ -285,17 +284,6 @@ class TicketCommentsStream(NonIncrementalZendeskStream):
             )))
         )))
     ).to_dict()
-
-    def get_url_params(
-            self,
-            context: dict | None,
-            next_page_token: Any | None,
-    ) -> dict[str, Any]:
-        """Return a dictionary of values to be used in URL parameterization."""
-        params = {"sort": "created_at"}
-        if next_page_token:
-            params["page[after]"] = next_page_token
-        return params
 
 
 class TagsStream(NonIncrementalZendeskStream):
