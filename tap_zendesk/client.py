@@ -173,8 +173,19 @@ class IncrementalZendeskStream(ZendeskStream):
         if next_page_token:
             params["cursor"] = next_page_token
         else:
-            params["start_time"] = int(datetime.fromisoformat(self.get_starting_replication_key_value(context)).timestamp())
+            params["start_time"] = self.get_start_time(context)
         return params
+
+    def get_start_time(self, context: dict | None) -> int:
+        """Get the start time for the initial incremental export."""
+        replication_key_value = self.get_starting_replication_key_value(context)
+        if replication_key_value:
+            # Parse the string to a datetime object
+            record_date = datetime.fromisoformat(replication_key_value)
+            start_time = int(record_date.timestamp())
+        else:
+            start_time = int(time.time()) - 86400  # 24 hours ago as a default
+        return start_time
 
 
 class NonIncrementalZendeskStream(ZendeskStream):
