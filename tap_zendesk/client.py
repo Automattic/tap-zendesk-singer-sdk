@@ -161,22 +161,6 @@ class ZendeskStream(RESTStream):
         self.logger.debug("Response received successfully.")
         return response
 
-    def post_process(
-        self,
-        row: dict,
-        context: dict | None = None,  # noqa: ARG002
-    ) -> dict | None:
-        """As needed, append or transform raw data to match expected structure.
-
-        Args:
-            row: An individual record from the stream.
-            context: The stream context.
-
-        Returns:
-            The updated record dictionary, or ``None`` to skip the record.
-        """
-        return row
-
 
 class IncrementalZendeskStream(ZendeskStream):
     def get_url_params(
