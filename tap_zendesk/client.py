@@ -181,12 +181,6 @@ class ZendeskStream(RESTStream):
                     self.logger.error("Received empty record")
                     continue
 
-                try:
-                    record_json = json.loads(json.dumps(record))
-                except json.JSONDecodeError as e:
-                    self.logger.error(f"JSONDecodeError encountered while parsing record: {e}")
-                    continue
-
                 record_date_str = record.get(replication_key)
                 if record_date_str:
                     self.logger.debug(record_date_str)
