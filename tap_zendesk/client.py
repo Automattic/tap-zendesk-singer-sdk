@@ -69,14 +69,6 @@ class ZendeskStream(RESTStream):
             headers["User-Agent"] = self.config.get("user_agent")
         return headers
 
-    def get_new_paginator(self) -> JSONPathPaginator:
-        """Create a new pagination helper instance.
-
-        Returns:
-            A pagination helper instance.
-        """
-        return JSONPathPaginator(self.next_page_token_jsonpath)
-
     def get_url_params(
             self,
             context: dict | None,
