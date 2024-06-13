@@ -57,18 +57,6 @@ class ZendeskStream(RESTStream):
             password=api_token
         )
 
-    @property
-    def http_headers(self) -> dict:
-        """Return the http headers needed.
-
-        Returns:
-            A dictionary of HTTP headers.
-        """
-        headers = {}
-        if "user_agent" in self.config:
-            headers["User-Agent"] = self.config.get("user_agent")
-        return headers
-
     def get_url_params(
             self,
             context: dict | None,
