@@ -79,15 +79,10 @@ class ZendeskStream(RESTStream):
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
         """Parse the response and return an iterator of result records."""
         if not response.content:
-            self.logger.warning("Received empty response for URL: %s", response.url)
-            return
+            raise ValueError(f"Received empty response for URL: {response.url}")
 
-        try:
-            response_json = response.json()
-            self.logger.debug(f"Response JSON: {response_json}")
-        except json.JSONDecodeError:
-            self.logger.error("Unable to decode JSON response: %s", response.text)
-            return
+        response_json = response.json()
+        self.logger.debug(f"Response JSON: {response_json}")
 
         end_date_str = self.config.get("end_date")
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
