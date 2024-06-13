@@ -173,16 +173,6 @@ class ZendeskStream(RESTStream):
         self.logger.debug("Response received successfully.")
         return response
 
-    def is_end_of_stream(self, response):
-        """Determine if the end of stream has been reached."""
-        if 'end_of_stream' in response.json():
-            end_of_stream = response.json().get('end_of_stream')
-            self.logger.debug(f"End of stream: {end_of_stream}")
-            return end_of_stream
-        end_of_stream = not response.json().get('meta', {}).get('after_cursor')
-        self.logger.debug(f"End of stream (meta): {end_of_stream}")
-        return end_of_stream
-
     def post_process(
         self,
         row: dict,
