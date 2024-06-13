@@ -176,9 +176,7 @@ class ZendeskStream(RESTStream):
                 self.logger.error("Received empty response")
                 break
 
-            records = self.parse_response(response)
-
-            for record in records:
+            for record in self.parse_response(response):
                 if not record:
                     self.logger.error("Received empty record")
                     continue
