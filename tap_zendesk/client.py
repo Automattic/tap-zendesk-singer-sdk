@@ -89,14 +89,7 @@ class ZendeskStream(RESTStream):
         return params
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
-        """Parse the response and return an iterator of result records.
-
-        Args:
-            response: The HTTP ``requests.Response`` object.
-
-        Yields:
-            Each record from the source.
-        """
+        """Parse the response and return an iterator of result records."""
         if not response.content:
             self.logger.warning("Received empty response for URL: %s", response.url)
             return
@@ -108,7 +101,30 @@ class ZendeskStream(RESTStream):
             self.logger.error("Unable to decode JSON response: %s", response.text)
             return
 
-        yield from extract_jsonpath(self.records_jsonpath, input=response_json)
+        end_date_str = self.config.get("end_date")
+        end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
+
+        if end_date and end_date.tzinfo is None:
+            end_date = end_date.replace(tzinfo=timezone.utc)
+
+        replication_key = self.replication_key
+
+        for record in extract_jsonpath(self.records_jsonpath, input=response_json):
+            if not record:
+                self.logger.error("Received empty record")
+                continue
+
+            record_date_str = record.get(replication_key)
+            if record_date_str:
+                record_date = datetime.fromisoformat(record_date_str)
+                if record_date.tzinfo is None:
+                    record_date = record_date.replace(tzinfo=timezone.utc)
+                if end_date and record_date > end_date:
+                    self.logger.info(
+                        f"Stopping data fetch as record date {record_date} exceeds end date {end_date}")
+                    return
+
+            yield record
 
     def _request(
         self,
@@ -156,57 +172,6 @@ class ZendeskStream(RESTStream):
         self.validate_response(response)
         self.logger.debug("Response received successfully.")
         return response
-
-    def get_records(self, context):
-        end_date_str = self.config.get("end_date")
-        end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
-
-        if end_date and end_date.tzinfo is None:
-            end_date = end_date.replace(tzinfo=timezone.utc)
-
-        replication_key = self.replication_key
-
-        paginator = self.get_new_paginator()
-        next_page_token = None
-
-        while True:
-            prepared_request = self.prepare_request(context, next_page_token)
-            response = self._request(prepared_request, context)
-            if not response:
-                self.logger.error("Received empty response")
-                break
-
-            for record in self.parse_response(response):
-                if not record:
-                    self.logger.error("Received empty record")
-                    continue
-
-                record_date_str = record.get(replication_key)
-                if record_date_str:
-                    record_date = datetime.fromisoformat(record_date_str)
-                    if record_date.tzinfo is None:
-                        record_date = record_date.replace(tzinfo=timezone.utc)
-                    if end_date and record_date > end_date:
-                        self.logger.info(
-                            f"Stopping data fetch as record date {record_date} exceeds end date {end_date}")
-                        return
-
-                yield record
-
-            next_page_token = self.get_next_page_token(response)
-            self.logger.debug(f"Next page token: {next_page_token}")
-            if not next_page_token or self.is_end_of_stream(response):
-                break
-
-    def get_next_page_token(self, response):
-        """Get the next page token from the response, if applicable."""
-        if 'after_cursor' in response.json():
-            next_page_token = response.json().get('after_cursor')
-            self.logger.debug(f"Next page token (cursor): {next_page_token}")
-            return next_page_token
-        next_page_token = response.json().get('meta', {}).get('after_cursor')
-        self.logger.debug(f"Next page token (meta): {next_page_token}")
-        return next_page_token
 
     def is_end_of_stream(self, response):
         """Determine if the end of stream has been reached."""
