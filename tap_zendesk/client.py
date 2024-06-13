@@ -173,8 +173,7 @@ class IncrementalZendeskStream(ZendeskStream):
         if next_page_token:
             params["cursor"] = next_page_token
         else:
-            start_time = self.get_start_time(context)
-            params["start_time"] = start_time
+            params["start_time"] = self.get_start_time(context)
         return params
 
     def get_start_time(self, context: dict | None) -> int:
