@@ -286,8 +286,8 @@ class TicketCommentsStream(NonIncrementalZendeskStream):
     ).to_dict()
 
 
-class TicketMetricsStream(IncrementalZendeskStream):
-    name = "ticket_metrics"
+class TicketMetricEventsStream(IncrementalZendeskStream):
+    name = "ticket_metric_events"
     path = "/api/v2/incremental/ticket_metric_events.json"
     primary_keys = ["id"]
     replication_key = "time"
