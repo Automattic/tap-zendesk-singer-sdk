@@ -295,53 +295,25 @@ class TicketMetricEventsStream(IncrementalZendeskStream):
     next_page_token_jsonpath = "$.meta.after_cursor"
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
-        th.Property("instance_id", th.IntegerType),
-        th.Property("metric", th.StringType),
         th.Property("ticket_id", th.IntegerType),
-        th.Property("time", th.DateTimeType),
+        th.Property("metric", th.StringType),
+        th.Property("instance_id", th.IntegerType),
         th.Property("type", th.StringType),
+        th.Property("time", th.StringType),
+        th.Property("sla", th.ObjectType(
+            th.Property("target", th.IntegerType),
+            th.Property("business_hours", th.BooleanType),
+            th.Property("policy", th.ObjectType(
+                th.Property("id", th.IntegerType),
+                th.Property("title", th.StringType),
+                th.Property("description", th.StringType)
+            )),
+        )),
         th.Property("status", th.ObjectType(
             th.Property("calendar", th.IntegerType),
             th.Property("business", th.IntegerType),
         )),
-        th.Property("agent_wait_time_in_minutes", th.ObjectType(
-            th.Property("calendar", th.IntegerType),
-            th.Property("business", th.IntegerType),
-        )),
-        th.Property("assignee_stations", th.IntegerType),
-        th.Property("created_at", th.DateTimeType),
-        th.Property("first_resolution_time_in_minutes", th.ObjectType(
-            th.Property("calendar", th.IntegerType),
-            th.Property("business", th.IntegerType),
-        )),
-        th.Property("full_resolution_time_in_minutes", th.ObjectType(
-            th.Property("calendar", th.IntegerType),
-            th.Property("business", th.IntegerType),
-        )),
-        th.Property("group_stations", th.IntegerType),
-        th.Property("latest_comment_added_at", th.DateTimeType),
-        th.Property("on_hold_time_in_minutes", th.ObjectType(
-            th.Property("calendar", th.IntegerType),
-            th.Property("business", th.IntegerType),
-        )),
-        th.Property("reopens", th.IntegerType),
-        th.Property("replies", th.IntegerType),
-        th.Property("reply_time_in_minutes", th.ObjectType(
-            th.Property("calendar", th.IntegerType),
-            th.Property("business", th.IntegerType),
-        )),
-        th.Property("requester_updated_at", th.DateTimeType),
-        th.Property("requester_wait_time_in_minutes", th.ObjectType(
-            th.Property("calendar", th.IntegerType),
-            th.Property("business", th.IntegerType),
-        )),
-        th.Property("status_updated_at", th.DateTimeType),
-        th.Property("updated_at", th.DateTimeType),
-        th.Property("url", th.StringType),
-        th.Property("initially_assigned_at", th.DateTimeType),
-        th.Property("assigned_at", th.DateTimeType),
-        th.Property("solved_at", th.DateTimeType),
-        th.Property("assignee_updated_at", th.DateTimeType)
+        th.Property("deleted", th.BooleanType),
     ).to_dict()
 
 
