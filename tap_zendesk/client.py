@@ -72,7 +72,7 @@ class ZendeskStream(RESTStream):
         Returns:
             A dictionary of URL query parameters.
         """
-        params: dict = {"page[size]": 100, "sort_order": "asc"}  # Include sort_order
+        params: dict = {}
         if next_page_token:
             params["page[after]"] = next_page_token
         return params
@@ -203,13 +203,4 @@ class IncrementalZendeskStream(ZendeskStream):
 
 
 class NonIncrementalZendeskStream(ZendeskStream):
-    def get_url_params(
-            self,
-            context: dict | None,
-            next_page_token: Any | None,
-    ) -> dict[str, Any]:
-        """Return a dictionary of values to be used in URL parameterization."""
-        params: dict = {"page[size]": 100, "sort_order": "asc"}  # Include sort_order
-        if next_page_token:
-            params["page[after]"] = next_page_token
-        return params
+    pass

@@ -52,6 +52,7 @@ class TapZendesk(Tap):
             streams.TagsStream(self),
             streams.TicketsStream(self),
             streams.TicketCommentsStream(self),
+            streams.TicketMetricsStream(self),
             streams.TicketMetricEventsStream(self),
             streams.UsersStream(self),
         ]
