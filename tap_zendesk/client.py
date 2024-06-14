@@ -15,6 +15,7 @@ from singer_sdk.helpers.jsonpath import extract_jsonpath
 from singer_sdk.pagination import JSONPathPaginator
 from singer_sdk.streams import RESTStream
 from requests import Response, PreparedRequest
+from time import sleep
 
 if sys.version_info >= (3, 9):
     import importlib.resources as importlib_resources
@@ -109,6 +110,27 @@ class ZendeskStream(RESTStream):
 
             yield record
 
+    def check_rate_throttling(self, response, min_remain_rate_limit):
+        """
+        Handle the Zendesk API only allowing 700 API calls per minute.
+        """
+        headers = response.headers
+        rate_limit_remain = headers.get('x-rate-limit-remaining', headers.get('ratelimit-remaining'))
+        if rate_limit_remain:
+            rate_limit_remain = int(rate_limit_remain)
+            rate_limit = int(headers.get('x-rate-limit', headers.get('ratelimit-limit')))
+            rate_limit_resets_in_s = None
+            self.logger.debug(f"Remaining rate limit: {rate_limit_remain}/{rate_limit}" +
+                             (f" (reset in {rate_limit_resets_in_s}s)" if rate_limit_resets_in_s is not None else ""))
+            if rate_limit_remain <= min_remain_rate_limit:
+                seconds_to_sleep = int(rate_limit_resets_in_s) if rate_limit_resets_in_s is not None else 60
+                self.logger.warning(f"API rate limit exceeded (rate limit: {rate_limit}, remain: {rate_limit_remain}, "
+                             f"min remain limit: {min_remain_rate_limit}). "
+                             f"Tap will retry the data collection after {seconds_to_sleep} seconds.")
+                sleep(seconds_to_sleep)
+        else:
+            raise Exception(f"rate-limit-remaining not found in response header: {headers}")
+
     def _request(
         self,
         prepared_request: PreparedRequest,
@@ -123,12 +145,6 @@ class ZendeskStream(RESTStream):
         Returns:
             The HTTP response object.
         """
-        # Calculate the time difference between the current time and the last request time
-        time_since_last_request = time.time() - self.last_request_time
-
-        # Ensure we don't exceed 250 requests per minute (1 request per 0.24 seconds)
-        if time_since_last_request < 0.24:
-            time.sleep(0.24 - time_since_last_request)
 
         response = self.requests_session.send(
             prepared_request,
@@ -151,6 +167,9 @@ class ZendeskStream(RESTStream):
         if response.status_code == 404:
             self.logger.warning(f"Received 404 for URL: {response.url}")
             return None
+
+        # Rate throttling check
+        self.check_rate_throttling(response, min_remain_rate_limit=10)
 
         self.validate_response(response)
         self.logger.debug("Response received successfully.")
