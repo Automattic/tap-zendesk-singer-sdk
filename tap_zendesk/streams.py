@@ -127,6 +127,7 @@ class TicketsStream(IncrementalZendeskStream):
         th.Property("raw_subject", th.StringType),
         th.Property("status", th.StringType),
         th.Property("updated_at", th.DateTimeType),
+        th.Property("custom_fields", th.StringType),
         th.Property("url", th.StringType),
         th.Property("allow_channelback", th.BooleanType),
         th.Property("allow_attachments", th.BooleanType),
