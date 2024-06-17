@@ -234,7 +234,7 @@ class TicketCommentsStream(NonIncrementalZendeskStream):
             )),
         )),
         th.Property("metadata", th.ObjectType(
-            th.Property("custom", th.StringType),
+            th.Property("custom", th.ObjectType(additional_properties=True)),
             th.Property("trusted", th.BooleanType),
             th.Property("notifications_suppressed_for", th.ArrayType(th.IntegerType)),
             th.Property("flags_options", th.ObjectType(
