@@ -30,10 +30,9 @@ SCHEMAS_DIR = importlib_resources.files(__package__) / "schemas"
 
 class ZendeskStream(RESTStream):
     """Zendesk stream class."""
-
     def __init__(self, tap, name=None, schema=None, path=None):
         super().__init__(tap, name, schema, path)
-        self.last_request_time = 0  # Initialize last_request_time
+        self.last_request_time = 0
         self.allow_redirects = False
         self.min_remain_rate_limit = self.config.get("min_remain_rate_limit", None)
 
@@ -173,13 +172,15 @@ class ZendeskStream(RESTStream):
 
 
 class IncrementalZendeskStream(ZendeskStream):
+    pagination_size = 1000
+
     def get_url_params(
             self,
             context: dict | None,
             next_page_token: Any | None,
     ) -> dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization."""
-        params = {"per_page": 1000}
+        params = {"per_page": self.pagination_size}
         if next_page_token:
             params["cursor"] = next_page_token
         else:
@@ -188,15 +189,15 @@ class IncrementalZendeskStream(ZendeskStream):
 
 
 class NonIncrementalZendeskStream(ZendeskStream):
+    pagination_size = 100
+
     def get_url_params(
             self,
             context: dict | None,
             next_page_token: Any | None,
     ) -> dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization."""
-        params: dict = {"page[size]": 1000}
+        params: dict = {"page[size]": self.pagination_size}
         if next_page_token:
             params["page[after]"] = next_page_token
-        else:
-            params["start_time"] = self.get_start_time(context)
         return params

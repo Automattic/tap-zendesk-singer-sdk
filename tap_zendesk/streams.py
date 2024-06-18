@@ -378,6 +378,7 @@ class TicketMetricEventsStream(IncrementalZendeskStream):
 class TagsStream(NonIncrementalZendeskStream):
     name = "tags"
     path = "/api/v2/tags.json"
+    pagination_size = 1000
     primary_keys = ["name"]
     records_jsonpath = "$.tags[*]"
     next_page_token_jsonpath = "$.meta.after_cursor"
@@ -390,6 +391,7 @@ class TagsStream(NonIncrementalZendeskStream):
 class SatisfactionRatingsStream(NonIncrementalZendeskStream):
     name = "satisfaction_ratings"
     path = "/api/v2/satisfaction_ratings.json"
+    pagination_size = 100
     primary_keys = ["id"]
     replication_key = "updated_at"
     records_jsonpath = "$.satisfaction_ratings[*]"
@@ -408,3 +410,17 @@ class SatisfactionRatingsStream(NonIncrementalZendeskStream):
         th.Property("reason", th.StringType),
         th.Property("comment", th.StringType)
     ).to_dict()
+
+    def get_url_params(
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        params = super().get_url_params(context, next_page_token)
+        end_date = datetime.fromisoformat(self.config.get('end_date'))
+        params.update({"end_time": int(end_date.timestamp())})
+        params.update({"start_time": self.get_start_time(context)})
+
+        if next_page_token:
+            params["page[after]"] = next_page_token
+        return params
