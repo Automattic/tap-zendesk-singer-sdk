@@ -31,7 +31,7 @@ class UsersStream(IncrementalZendeskStream):
     primary_keys = ["id"]
     replication_key = "created_at"
     records_jsonpath = "$.users[*]"  # Adjusted to match the correct JSON path for users.
-    next_page_token_jsonpath = "$.meta.after_cursor"
+    next_page_token_jsonpath = "$.after_cursor"
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("name", th.StringType),
