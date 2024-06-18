@@ -193,6 +193,146 @@ class TicketsStream(IncrementalZendeskStream):
         }
 
 
+class TicketAuditsStream(NonIncrementalZendeskStream):
+    name = "ticket_audits"
+    parent_stream_type = TicketsStream
+    path = "/api/v2/tickets/{ticket_id}/audits.json"
+    primary_keys = ["id"]
+    records_jsonpath = "$.audits[*]"
+    next_page_token_jsonpath = "$.meta.after_cursor"
+    schema = th.PropertiesList(
+        th.Property("author_id", th.IntegerType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("events", th.ArrayType(th.ObjectType(
+            th.Property("attachments", th.ArrayType(th.ObjectType(
+                th.Property("id", th.IntegerType),
+                th.Property("size", th.IntegerType),
+                th.Property("url", th.StringType),
+                th.Property("inline", th.BooleanType),
+                th.Property("height", th.IntegerType),
+                th.Property("width", th.IntegerType),
+                th.Property("content_url", th.StringType),
+                th.Property("mapped_content_url", th.StringType),
+                th.Property("content_type", th.StringType),
+                th.Property("file_name", th.StringType),
+                th.Property("thumbnails", th.ArrayType(th.ObjectType(
+                    th.Property("id", th.IntegerType),
+                    th.Property("size", th.IntegerType),
+                    th.Property("url", th.StringType),
+                    th.Property("inline", th.BooleanType),
+                    th.Property("height", th.IntegerType),
+                    th.Property("width", th.IntegerType),
+                    th.Property("content_url", th.StringType),
+                    th.Property("mapped_content_url", th.StringType),
+                    th.Property("content_type", th.StringType),
+                    th.Property("file_name", th.StringType)
+                )))
+            ))),
+            th.Property("created_at", th.DateTimeType),
+            th.Property("data", th.ObjectType(
+                th.Property("transcription_status", th.StringType),
+                th.Property("transcription_text", th.StringType),
+                th.Property("to", th.StringType),
+                th.Property("call_duration", th.StringType),
+                th.Property("answered_by_name", th.StringType),
+                th.Property("recording_url", th.StringType),
+                th.Property("started_at", th.DateTimeType),
+                th.Property("answered_by_id", th.IntegerType),
+                th.Property("from", th.StringType)
+            )),
+            th.Property("formatted_from", th.StringType),
+            th.Property("formatted_to", th.StringType),
+            th.Property("transcription_visible", th.BooleanType),
+            th.Property("trusted", th.BooleanType),
+            th.Property("html_body", th.StringType),
+            th.Property("subject", th.StringType),
+            th.Property("field_name", th.StringType),
+            th.Property("audit_id", th.IntegerType),
+            th.Property("author_id", th.IntegerType),
+            th.Property("via", th.ObjectType(
+                th.Property("channel", th.StringType),
+                th.Property("source", th.ObjectType(
+                    th.Property("to", th.ObjectType(
+                        th.Property("address", th.StringType),
+                        th.Property("name", th.StringType)
+                    )),
+                    th.Property("from", th.ObjectType(
+                        th.Property("title", th.StringType),
+                        th.Property("address", th.StringType),
+                        th.Property("subject", th.StringType),
+                        th.Property("deleted", th.BooleanType),
+                        th.Property("name", th.StringType),
+                        th.Property("original_recipients", th.ArrayType(th.StringType)),
+                        th.Property("id", th.IntegerType),
+                        th.Property("ticket_id", th.IntegerType),
+                        th.Property("revision_id", th.IntegerType)
+                    )),
+                    th.Property("rel", th.StringType)
+                ))
+            )),
+            th.Property("type", th.StringType),
+            th.Property("macro_id", th.StringType),
+            th.Property("body", th.StringType),
+            th.Property("recipients", th.ArrayType(th.IntegerType)),
+            th.Property("macro_deleted", th.BooleanType),
+            th.Property("plain_body", th.StringType),
+            th.Property("id", th.IntegerType),
+            th.Property("macro_title", th.StringType),
+            th.Property("public", th.BooleanType),
+            th.Property("resource", th.StringType)
+        ))),
+        th.Property("id", th.IntegerType),
+        th.Property("metadata", th.ObjectType(
+            th.Property("trusted", th.BooleanType),
+            th.Property("notifications_suppressed_for", th.ArrayType(th.IntegerType)),
+            th.Property("flags_options", th.ObjectType(
+                th.Property("2", th.ObjectType(
+                    th.Property("trusted", th.BooleanType)
+                )),
+                th.Property("11", th.ObjectType(
+                    th.Property("trusted", th.BooleanType),
+                    th.Property("message", th.ObjectType(
+                        th.Property("user", th.StringType)
+                    ))
+                ))
+            )),
+            th.Property("flags", th.ArrayType(th.IntegerType)),
+            th.Property("system", th.ObjectType(
+                th.Property("location", th.StringType),
+                th.Property("longitude", th.NumberType),
+                th.Property("message_id", th.StringType),
+                th.Property("raw_email_identifier", th.StringType),
+                th.Property("ip_address", th.StringType),
+                th.Property("json_email_identifier", th.StringType),
+                th.Property("client", th.StringType),
+                th.Property("latitude", th.NumberType)
+            ))
+        )),
+        th.Property("ticket_id", th.IntegerType),
+        th.Property("via", th.ObjectType(
+            th.Property("channel", th.StringType),
+            th.Property("source", th.ObjectType(
+                th.Property("from", th.ObjectType(
+                    th.Property("ticket_ids", th.ArrayType(th.IntegerType)),
+                    th.Property("subject", th.StringType),
+                    th.Property("name", th.StringType),
+                    th.Property("address", th.StringType),
+                    th.Property("original_recipients", th.ArrayType(th.StringType)),
+                    th.Property("id", th.IntegerType),
+                    th.Property("ticket_id", th.IntegerType),
+                    th.Property("deleted", th.BooleanType),
+                    th.Property("title", th.StringType)
+                )),
+                th.Property("to", th.ObjectType(
+                    th.Property("name", th.StringType),
+                    th.Property("address", th.StringType)
+                )),
+                th.Property("rel", th.StringType)
+            ))
+        )),
+    ).to_dict()
+
+
 class TicketCommentsStream(NonIncrementalZendeskStream):
     name = "ticket_comments"
     parent_stream_type = TicketsStream
