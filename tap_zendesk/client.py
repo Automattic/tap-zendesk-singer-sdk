@@ -35,6 +35,7 @@ class ZendeskStream(RESTStream):
         super().__init__(tap, name, schema, path)
         self.last_request_time = 0  # Initialize last_request_time
         self.allow_redirects = False
+        self.min_remain_rate_limit = self.config.get("min_remain_rate_limit", None)
 
     @property
     def url_base(self) -> str:
@@ -110,26 +111,29 @@ class ZendeskStream(RESTStream):
 
             yield record
 
-    def check_rate_throttling(self, response, min_remain_rate_limit):
+    def check_rate_throttling(self, response):
         """
         Handle the Zendesk API only allowing 700 API calls per minute.
         """
+        if not self.min_remain_rate_limit:
+            return
+
         headers = response.headers
-        rate_limit_remain = headers.get('x-rate-limit-remaining', headers.get('ratelimit-remaining'))
-        if rate_limit_remain:
-            rate_limit_remain = int(rate_limit_remain)
-            rate_limit = int(headers.get('x-rate-limit', headers.get('ratelimit-limit')))
-            rate_limit_resets_in_s = None
-            self.logger.debug(f"Remaining rate limit: {rate_limit_remain}/{rate_limit}" +
-                             (f" (reset in {rate_limit_resets_in_s}s)" if rate_limit_resets_in_s is not None else ""))
-            if rate_limit_remain <= min_remain_rate_limit:
-                seconds_to_sleep = int(rate_limit_resets_in_s) if rate_limit_resets_in_s is not None else 60
-                self.logger.warning(f"API rate limit exceeded (rate limit: {rate_limit}, remain: {rate_limit_remain}, "
-                             f"min remain limit: {min_remain_rate_limit}). "
-                             f"Tap will retry the data collection after {seconds_to_sleep} seconds.")
-                sleep(seconds_to_sleep)
+        rate_limit_remain = int(headers.get('x-rate-limit-remaining', headers.get('ratelimit-remaining', 0)))
+        rate_limit = int(headers.get('x-rate-limit', headers.get('ratelimit-limit', 0)))
+        rate_limit_resets_in_s = headers.get('rate-limit-reset', headers.get('ratelimit-reset'))
+
+        self.logger.debug(f"Remaining rate limit: {rate_limit_remain}/{rate_limit}" +
+                          (f" (reset in {rate_limit_resets_in_s}s)" if rate_limit_resets_in_s else " (no reset time)"))
+
+        if rate_limit_remain <= self.min_remain_rate_limit:
+            seconds_to_sleep = int(rate_limit_resets_in_s) if rate_limit_resets_in_s else 60
+            self.logger.warning(f"API rate limit exceeded (rate limit: {rate_limit}, remain: {rate_limit_remain}, "
+                                f"min remain limit: {self.min_remain_rate_limit}). "
+                                f"Tap will retry the data collection after {seconds_to_sleep} seconds.")
+            sleep(seconds_to_sleep)
         else:
-            raise Exception(f"rate-limit-remaining not found in response header: {headers}")
+            self.logger.debug("Rate limit check passed.")
 
     def _request(
         self,
@@ -169,7 +173,7 @@ class ZendeskStream(RESTStream):
             return None
 
         # Rate throttling check
-        self.check_rate_throttling(response, min_remain_rate_limit=10)
+        self.check_rate_throttling(response)
 
         self.validate_response(response)
         self.logger.debug("Response received successfully.")
