@@ -59,24 +59,16 @@ class ZendeskStream(RESTStream):
             password=api_token
         )
 
-    def get_url_params(
-            self,
-            context: dict | None,
-            next_page_token: Any | None,
-    ) -> dict[str, Any]:
-        """Return a dictionary of values to be used in URL parameterization.
-
-        Args:
-            context: The stream context.
-            next_page_token: The next page index or value.
-
-        Returns:
-            A dictionary of URL query parameters.
-        """
-        params: dict = {}
-        if next_page_token:
-            params["page[after]"] = next_page_token
-        return params
+    def get_start_time(self, context: dict | None) -> int:
+        """Get the start time for the initial incremental export."""
+        replication_key_value = self.get_starting_replication_key_value(context)
+        if replication_key_value:
+            # Parse the string to a datetime object
+            record_date = datetime.fromisoformat(replication_key_value)
+            start_time = int(record_date.timestamp())
+        else:
+            start_time = int(time.time()) - 86400  # 24 hours ago as a default
+        return start_time
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
         """Parse the response and return an iterator of result records."""
@@ -194,17 +186,17 @@ class IncrementalZendeskStream(ZendeskStream):
             params["start_time"] = self.get_start_time(context)
         return params
 
-    def get_start_time(self, context: dict | None) -> int:
-        """Get the start time for the initial incremental export."""
-        replication_key_value = self.get_starting_replication_key_value(context)
-        if replication_key_value:
-            # Parse the string to a datetime object
-            record_date = datetime.fromisoformat(replication_key_value)
-            start_time = int(record_date.timestamp())
-        else:
-            start_time = int(time.time()) - 86400  # 24 hours ago as a default
-        return start_time
-
 
 class NonIncrementalZendeskStream(ZendeskStream):
-    pass
+    def get_url_params(
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        """Return a dictionary of values to be used in URL parameterization."""
+        params: dict = {"page[size]": 1000}
+        if next_page_token:
+            params["page[after]"] = next_page_token
+        else:
+            params["start_time"] = self.get_start_time(context)
+        return params
