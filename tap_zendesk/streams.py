@@ -275,33 +275,31 @@ class TicketAuditsStream(ZendeskStream):
             th.Property("body", th.OneOf(
                 th.StringType(),
                 th.ArrayType(
-                    th.OneOf(
-                        th.ObjectType(
-                            th.Property("article", th.OneOf(
-                                th.ObjectType(
-                                    th.Property("article_id", th.IntegerType(), nullable=True),
-                                    th.Property("brand_id", th.IntegerType(), nullable=True),
-                                    th.Property("locale", th.StringType(), nullable=True),
-                                    th.Property("score", th.NumberType(), nullable=True),
-                                    th.Property("title", th.StringType(), nullable=True),
-                                    th.Property("url", th.StringType(), nullable=True),
-                                    th.Property("html_url", th.StringType(), nullable=True),
-                                    th.Property("id", th.IntegerType(), nullable=True),
-                                ),
-                                th.CustomType({"type": "null"})
-                            )),
-                            th.Property("reviews", th.OneOf(
-                                th.ObjectType(
-                                    th.Property("enduser", th.StringType(), nullable=True),
-                                    th.Property("agent", th.ArrayType(th.StringType()), nullable=True),
-                                ),
-                                th.CustomType({"type": "null"})
-                            )),
-                            th.Property("viewed", th.BooleanType(), nullable=True),
-                        ),
-                        th.CustomType({"type": "null"})
+                    th.ObjectType(
+                        th.Property("article", th.OneOf(
+                            th.ObjectType(
+                                th.Property("article_id", th.IntegerType(), nullable=True),
+                                th.Property("brand_id", th.IntegerType(), nullable=True),
+                                th.Property("locale", th.StringType(), nullable=True),
+                                th.Property("score", th.NumberType(), nullable=True),
+                                th.Property("title", th.StringType(), nullable=True),
+                                th.Property("url", th.StringType(), nullable=True),
+                                th.Property("html_url", th.StringType(), nullable=True),
+                                th.Property("id", th.IntegerType(), nullable=True),
+                            ),
+                            th.CustomType({"type": "null"})
+                        )),
+                        th.Property("reviews", th.OneOf(
+                            th.ObjectType(
+                                th.Property("enduser", th.StringType(), nullable=True),
+                                th.Property("agent", th.ArrayType(th.StringType()), nullable=True),
+                            ),
+                            th.CustomType({"type": "null"})
+                        )),
+                        th.Property("viewed", th.BooleanType(), nullable=True),
                     )
-                )
+                ),
+                th.CustomType({"type": "null"})
             )),
             th.Property("recipients", th.ArrayType(th.IntegerType)),
             th.Property("macro_deleted", th.BooleanType),
