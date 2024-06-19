@@ -58,6 +58,17 @@ class ZendeskStream(RESTStream):
             password=api_token
         )
 
+    def get_url_params(
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        """Return a dictionary of values to be used in URL parameterization."""
+        params: dict = {}
+        if next_page_token:
+            params["page[after]"] = next_page_token
+        return params
+
     def get_start_time(self, context: dict | None) -> int:
         """Get the start time for the initial incremental export."""
         replication_key_value = self.get_starting_replication_key_value(context)

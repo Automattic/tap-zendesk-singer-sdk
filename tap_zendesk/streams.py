@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timezone
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
-from tap_zendesk.client import IncrementalZendeskStream, NonIncrementalZendeskStream
+from tap_zendesk.client import ZendeskStream, IncrementalZendeskStream, NonIncrementalZendeskStream
 import requests
 
 
@@ -189,11 +189,11 @@ class TicketsStream(IncrementalZendeskStream):
         """Return a context dictionary for child streams."""
         self.logger.debug(f"Creating child context for ticket_id: {record['id']}")
         return {
-            "ticket_id": record["id"],
+            "ticket_id": int(record["id"]),
         }
 
 
-class TicketAuditsStream(NonIncrementalZendeskStream):
+class TicketAuditsStream(ZendeskStream):
     name = "ticket_audits"
     parent_stream_type = TicketsStream
     path = "/api/v2/tickets/{ticket_id}/audits.json"
@@ -333,7 +333,7 @@ class TicketAuditsStream(NonIncrementalZendeskStream):
     ).to_dict()
 
 
-class TicketCommentsStream(NonIncrementalZendeskStream):
+class TicketCommentsStream(ZendeskStream):
     name = "ticket_comments"
     parent_stream_type = TicketsStream
     path = "/api/v2/tickets/{ticket_id}/comments.json"
@@ -426,7 +426,7 @@ class TicketCommentsStream(NonIncrementalZendeskStream):
     ).to_dict()
 
 
-class TicketMetricsStream(NonIncrementalZendeskStream):
+class TicketMetricsStream(ZendeskStream):
     name = "ticket_metrics"
     parent_stream_type = TicketsStream
     path = "/api/v2/tickets/{ticket_id}/metrics.json"
