@@ -200,7 +200,6 @@ class TicketAuditsStream(ZendeskStream):
     primary_keys = ["id"]
     records_jsonpath = "$.audits[*]"
     next_page_token_jsonpath = "$.meta.after_cursor"
-    NoneType = type(None)
     schema = th.PropertiesList(
         th.Property("author_id", th.IntegerType),
         th.Property("created_at", th.DateTimeType),
