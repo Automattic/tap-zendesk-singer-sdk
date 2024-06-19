@@ -272,7 +272,23 @@ class TicketAuditsStream(ZendeskStream):
             )),
             th.Property("type", th.StringType),
             th.Property("macro_id", th.StringType),
-            th.Property("body", th.StringType),
+            th.Property("body", th.OneOf(th.StringType, th.ArrayType(th.ObjectType(
+                th.Property("article", th.ObjectType(
+                    th.Property("article_id", th.IntegerType),
+                    th.Property("brand_id", th.IntegerType),
+                    th.Property("locale", th.StringType),
+                    th.Property("score", th.NumberType),  # Use th.NumberType to handle Decimal
+                    th.Property("title", th.StringType),
+                    th.Property("url", th.StringType),
+                    th.Property("html_url", th.StringType),
+                    th.Property("id", th.IntegerType),
+                )),
+                th.Property("reviews", th.ObjectType(
+                    th.Property("enduser", th.StringType),
+                    th.Property("agent", th.ArrayType(th.StringType)),
+                )),
+                th.Property("viewed", th.BooleanType),
+            )))),
             th.Property("recipients", th.ArrayType(th.IntegerType)),
             th.Property("macro_deleted", th.BooleanType),
             th.Property("plain_body", th.StringType),
