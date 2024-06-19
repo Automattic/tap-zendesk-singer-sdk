@@ -285,11 +285,11 @@ class TicketAuditsStream(ZendeskStream):
                             th.Property("url", th.StringType, nullable=True),
                             th.Property("html_url", th.StringType, nullable=True),
                             th.Property("id", th.IntegerType, nullable=True)
-                        )),
+                        ), nullable=True),
                         th.Property("reviews", th.ObjectType(
                             th.Property("enduser", th.StringType, nullable=True),
                             th.Property("agent", th.ArrayType(th.StringType), nullable=True)
-                        )),
+                        ), nullable=True),
                         th.Property("viewed", th.BooleanType, nullable=True)
                     )
                 )
