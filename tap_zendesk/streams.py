@@ -564,3 +564,38 @@ class SatisfactionRatingsStream(NonIncrementalZendeskStream):
         if next_page_token:
             params["page[after]"] = next_page_token
         return params
+
+
+class SlaPoliciesStream(ZendeskStream):
+    name = "sla_policies"
+    path = "/api/v2/slas/policies.json"
+    primary_keys = ["id"]
+    records_jsonpath = "$.sla_policies[*]"
+    next_page_token_jsonpath = "$.next_page"
+    schema = th.PropertiesList(
+        th.Property("id", th.IntegerType),
+        th.Property("url", th.StringType),
+        th.Property("title", th.StringType),
+        th.Property("description", th.StringType),
+        th.Property("position", th.IntegerType),
+        th.Property("filter", th.ObjectType(
+            th.Property("all", th.ArrayType(th.ObjectType(
+                th.Property("field", th.StringType),
+                th.Property("operator", th.StringType),
+                th.Property("value", th.OneOf(th.StringType, th.IntegerType))
+            ))),
+            th.Property("any", th.ArrayType(th.ObjectType(
+                th.Property("field", th.StringType),
+                th.Property("operator", th.StringType),
+                th.Property("value", th.OneOf(th.StringType, th.IntegerType))
+            )))
+        )),
+        th.Property("policy_metrics", th.ArrayType(th.ObjectType(
+            th.Property("priority", th.StringType),
+            th.Property("target", th.IntegerType),
+            th.Property("business_hours", th.BooleanType),
+            th.Property("metric", th.StringType)
+        ))),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("updated_at", th.DateTimeType),
+    ).to_dict()
