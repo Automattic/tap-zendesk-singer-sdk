@@ -274,6 +274,7 @@ class TicketAuditsStream(ZendeskStream):
             th.Property("macro_id", th.StringType),
             th.Property("body", th.OneOf(
                 th.StringType(),
+                th.ObjectType(),
                 th.ArrayType(
                     th.ObjectType(
                         th.Property("article", th.OneOf(
@@ -287,19 +288,18 @@ class TicketAuditsStream(ZendeskStream):
                                 th.Property("html_url", th.StringType(), nullable=True),
                                 th.Property("id", th.IntegerType(), nullable=True),
                             ),
-                            th.CustomType({"type": "null"})
+                            th.ObjectType(),
                         )),
                         th.Property("reviews", th.OneOf(
                             th.ObjectType(
                                 th.Property("enduser", th.StringType(), nullable=True),
                                 th.Property("agent", th.ArrayType(th.StringType()), nullable=True),
                             ),
-                            th.CustomType({"type": "null"})
+                            th.ObjectType(),
                         )),
                         th.Property("viewed", th.BooleanType(), nullable=True),
                     )
-                ),
-                th.CustomType({"type": "null"})
+                )
             )),
             th.Property("recipients", th.ArrayType(th.IntegerType)),
             th.Property("macro_deleted", th.BooleanType),
