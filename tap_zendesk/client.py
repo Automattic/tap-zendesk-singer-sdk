@@ -170,9 +170,8 @@ class ZendeskStream(RESTStream):
         )
 
         # Check for 404 Not Found and log a warning
-        if response.status_code == 404:
-            self.logger.warning(f"Received 404 for URL: {response.url}")
-            return None
+        if response.status_code == 404 or response.status_code == 400:
+            raise Exception(f"Received {response.status_code} for URL: {response.url}")
 
         # Rate throttling check
         self.check_rate_throttling(response)
