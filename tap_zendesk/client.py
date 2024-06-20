@@ -32,7 +32,6 @@ class ZendeskStream(RESTStream):
     """Zendesk stream class."""
     def __init__(self, tap, name=None, schema=None, path=None):
         super().__init__(tap, name, schema, path)
-        self.last_request_time = 0
         self.allow_redirects = False
         self.min_remain_rate_limit = self.config.get("min_remain_rate_limit", None)
 
