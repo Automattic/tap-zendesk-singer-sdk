@@ -33,7 +33,7 @@ class ZendeskStream(RESTStream):
     def __init__(self, tap, name=None, schema=None, path=None):
         super().__init__(tap, name, schema, path)
         self.allow_redirects = False
-        self.min_remain_rate_limit = self.config.get("min_remain_rate_limit", None)
+        self.min_remain_rate_limit = self.config["min_remain_rate_limit"]
 
     @property
     def url_base(self) -> str:
