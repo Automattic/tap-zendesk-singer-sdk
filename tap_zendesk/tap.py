@@ -41,7 +41,7 @@ class TapZendesk(Tap):
         ),
         th.Property(
             "min_remain_rate_limit",
-            th.StringType,
+            th.IntegerType,
             description="Sets a limit to the remain rate that the tap will not will not overtake (it will wait for the reset)",
         ),
     ).to_dict()
