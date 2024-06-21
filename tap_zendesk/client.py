@@ -133,8 +133,6 @@ class ZendeskStream(RESTStream):
                                 f"min remain limit: {self.min_remain_rate_limit}). "
                                 f"Tap will retry the data collection after {seconds_to_sleep} seconds.")
             sleep(seconds_to_sleep)
-        else:
-            self.logger.debug("Rate limit check passed.")
 
     def _request(
         self,
