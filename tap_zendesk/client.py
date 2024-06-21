@@ -71,12 +71,9 @@ class ZendeskStream(RESTStream):
     def get_start_time(self, context: dict | None) -> int:
         """Get the start time for the initial incremental export."""
         replication_key_value = self.get_starting_replication_key_value(context)
-        if replication_key_value:
-            # Parse the string to a datetime object
-            record_date = datetime.fromisoformat(replication_key_value)
-            start_time = int(record_date.timestamp())
-        else:
-            start_time = int(time.time()) - 86400  # 24 hours ago as a default
+        # Parse the string to a datetime object
+        record_date = datetime.fromisoformat(replication_key_value)
+        start_time = int(record_date.timestamp())
         return start_time
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
