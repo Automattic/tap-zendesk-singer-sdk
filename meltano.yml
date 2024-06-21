@@ -47,11 +47,6 @@ plugins:
       label: Minimum Remain Rate Limit
       description: Sets a limit to the remain rate that the tap will not will not
         overtake (it will wait for the reset)
-    - name: ticket_paginate_by_time
-      kind: boolean
-      label: Ticket pagination by Time
-      description: (Default True) Sets ticket pagination by time-based (True) or cursor-based
-        (False).
   loaders:
   - name: target-parquet
     variant: automattic

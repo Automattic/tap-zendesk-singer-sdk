@@ -39,6 +39,11 @@ class TapZendesk(Tap):
             th.DateTimeType,
             description="The latest record date to sync",
         ),
+        th.Property(
+            "min_remain_rate_limit",
+            th.StringType,
+            description="Sets a limit to the remain rate that the tap will not will not overtake (it will wait for the reset)",
+        ),
     ).to_dict()
 
     def discover_streams(self) -> list[streams.ZendeskStream]:
