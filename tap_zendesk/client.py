@@ -85,8 +85,6 @@ class ZendeskStream(RESTStream):
             raise ValueError(f"Received empty response for URL: {response.url}")
 
         response_json = response.json()
-        self.logger.debug(f"Response JSON: {response_json}")
-
         end_date_str = self.config.get("end_date")
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
 
