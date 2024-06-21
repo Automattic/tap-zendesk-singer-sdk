@@ -95,17 +95,24 @@ class ZendeskStream(RESTStream):
                 self.logger.error("Received empty record")
                 continue
 
+            if self._does_record_date_exceed_end_date(record, replication_key, end_date):
+                return
+
+            yield record
+
+    def _does_record_date_exceed_end_date(self, record: dict, replication_key: str, end_date: datetime) -> bool:
+        """Check if the record date exceeds the end date."""
+        if end_date:
             record_date_str = record.get(replication_key)
             if record_date_str:
                 record_date = datetime.fromisoformat(record_date_str)
                 if record_date.tzinfo is None:
                     record_date = record_date.replace(tzinfo=timezone.utc)
-                if end_date and record_date > end_date:
+                if record_date > end_date:
                     self.logger.info(
                         f"Stopping data fetch as record date {record_date} exceeds end date {end_date}")
-                    return
-
-            yield record
+                    return True
+        return False
 
     def check_rate_throttling(self, response):
         """
