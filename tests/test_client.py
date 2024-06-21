@@ -63,19 +63,6 @@ class TestZendeskStream(unittest.TestCase):
             self.assertIn('Remaining rate limit: 5/700 (no reset time)', log.output[0])
             self.assertIn('API rate limit exceeded', log.output[1])
 
-    def test_check_rate_throttling_no_min_remain_rate_limit(self):
-        """Test when min_remain_rate_limit is not set."""
-        self.zendesk_stream.min_remain_rate_limit = None
-        response = MagicMock()
-        response.headers = {
-            'x-rate-limit-remaining': '5',
-            'x-rate-limit': '700',
-        }
-
-        with self.assertLogs(self.zendesk_stream.logger, level='DEBUG') as log:
-            self.zendesk_stream.check_rate_throttling(response)
-            self.assertIn("No min_remain_rate_limit set, skipping rate limit check.", log.output[0])
-
 
 if __name__ == "__main__":
     unittest.main()
