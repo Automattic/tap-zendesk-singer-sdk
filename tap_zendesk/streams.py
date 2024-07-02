@@ -182,8 +182,15 @@ class TicketsStream(IncrementalZendeskStream):
         )),
         th.Property("sharing_agreement_ids", th.ArrayType(th.IntegerType)),
         th.Property("email_cc_ids", th.ArrayType(th.IntegerType)),
-        th.Property("forum_topic_id", th.IntegerType)
+        th.Property("forum_topic_id", th.IntegerType),
+        th.Property("custom_fields", th.ArrayType(
+            th.ObjectType(
+                th.Property("id", th.IntegerType),
+                th.Property("value", th.CustomType({'type': ['string', 'boolean', 'array', 'object', 'null']}))
+            )
+        ))
     ).to_dict()
+
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Return a context dictionary for child streams."""
