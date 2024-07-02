@@ -213,7 +213,7 @@ class TicketAuditsStream(ZendeskStream):
         th.Property("created_at", th.DateTimeType),
         th.Property("author_id", th.IntegerType),
         th.Property("metadata", th.ObjectType(
-            th.Property("custom", th.CustomType({'type': ['string', 'object', 'null']})),
+            th.Property("custom", th.CustomType({'type': ['string', 'null', 'object']})),
             th.Property("trusted", th.BooleanType),
             th.Property("notifications_suppressed_for", th.ArrayType(th.IntegerType)),
             th.Property("flags_options", th.ObjectType(
@@ -326,6 +326,27 @@ class TicketAuditsStream(ZendeskStream):
                 th.Property("public", th.BooleanType),
                 th.Property("resource", th.StringType)
             )
+        )),
+        th.Property("via", th.ObjectType(
+            th.Property("channel", th.StringType),
+            th.Property("source", th.ObjectType(
+                th.Property("from", th.ObjectType(
+                    th.Property("ticket_ids", th.ArrayType(th.IntegerType)),
+                    th.Property("subject", th.StringType),
+                    th.Property("name", th.StringType),
+                    th.Property("address", th.StringType),
+                    th.Property("original_recipients", th.ArrayType(th.StringType)),
+                    th.Property("id", th.IntegerType),
+                    th.Property("ticket_id", th.IntegerType),
+                    th.Property("deleted", th.BooleanType),
+                    th.Property("title", th.StringType)
+                )),
+                th.Property("to", th.ObjectType(
+                    th.Property("name", th.StringType),
+                    th.Property("address", th.StringType)
+                )),
+                th.Property("rel", th.StringType)
+            ))
         ))
     ).to_dict()
 
