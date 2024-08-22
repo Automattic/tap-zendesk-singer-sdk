@@ -1,28 +1,31 @@
 """Stream type classes for tap-zendesk."""
 from __future__ import annotations
 
-import sys
-import typing as t
-from typing import Any, Iterable, Optional
-import json
-import time
-from datetime import datetime, timezone
+from datetime import datetime
+from typing import Any, Optional
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
+
 from tap_zendesk.client import ZendeskStream, IncrementalZendeskStream, NonIncrementalZendeskStream
-import requests
 
 
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
-
-
-# TODO: Delete this is if not using json files for schema definition
-SCHEMAS_DIR = importlib_resources.files(__package__) / "schemas"
-# TODO: - Override `UsersStream` and `GroupsStream` with your own stream definition.
-#       - Copy-paste as many times as needed to create multiple stream types.
+class GroupsStream(NonIncrementalZendeskStream):
+    name = "groups"
+    path = "/api/v2/groups.json?exclude_deleted=false"
+    pagination_size = 100
+    primary_keys = ["id"]
+    records_jsonpath = "$.groups[*]"
+    next_page_token_jsonpath = "$.after_cursor"
+    schema = th.PropertiesList(
+        th.Property("created_at", th.DateTimeType),
+        th.Property("updated_at", th.DateTimeType),
+        th.Property("name", th.StringType),
+        th.Property("id", th.IntegerType),
+        th.Property("default", th.BooleanType),
+        th.Property("deleted", th.BooleanType),
+        th.Property("description", th.StringType),
+        th.Property("url", th.StringType),
+    ).to_dict()
 
 
 class UsersStream(IncrementalZendeskStream):

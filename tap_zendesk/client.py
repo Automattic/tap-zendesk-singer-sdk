@@ -2,30 +2,18 @@
 
 from __future__ import annotations
 
-import sys
-from typing import Any, Callable, Iterable, Optional, Dict
-
-import json
 import time
 from datetime import datetime, timezone
+from time import sleep
+from typing import Any, Callable, Iterable, Optional, Dict
 
 import requests
+from requests import Response, PreparedRequest
 from singer_sdk.authenticators import BasicAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
-from singer_sdk.pagination import JSONPathPaginator
 from singer_sdk.streams import RESTStream
-from requests import Response, PreparedRequest
-from time import sleep
-
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
 
 _Auth = Callable[[requests.PreparedRequest], requests.PreparedRequest]
-
-# TODO: Delete this is if not using json files for schema definition
-SCHEMAS_DIR = importlib_resources.files(__package__) / "schemas"
 
 
 class ZendeskStream(RESTStream):

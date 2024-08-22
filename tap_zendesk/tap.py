@@ -5,7 +5,6 @@ from __future__ import annotations
 from singer_sdk import Tap
 from singer_sdk import typing as th  # JSON schema typing helpers
 
-# TODO: Import your custom stream types here:
 from tap_zendesk import streams
 
 
@@ -14,7 +13,6 @@ class TapZendesk(Tap):
 
     name = "tap-zendesk"
 
-    # TODO: Update this section with the actual config values you expect:
     config_jsonschema = th.PropertiesList(
         th.Property(
             "api_token",
@@ -62,6 +60,7 @@ class TapZendesk(Tap):
             streams.TicketMetricsStream(self),
             streams.TicketMetricEventsStream(self),
             streams.UsersStream(self),
+            streams.GroupsStream(self),
         ]
 
 
