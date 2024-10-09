@@ -23,6 +23,7 @@ class GroupsStream(NonIncrementalZendeskStream):
         th.Property("id", th.IntegerType),
         th.Property("default", th.BooleanType),
         th.Property("deleted", th.BooleanType),
+        th.Property("is_public", th.BooleanType),
         th.Property("description", th.StringType),
         th.Property("url", th.StringType),
     ).to_dict()
@@ -37,6 +38,7 @@ class UsersStream(IncrementalZendeskStream):
     next_page_token_jsonpath = "$.after_cursor"
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
+        th.Property("custom_status_id", th.IntegerType),
         th.Property("name", th.StringType),
         th.Property("updated_at", th.DateTimeType),
         th.Property("verified", th.BooleanType),
@@ -65,7 +67,8 @@ class UsersStream(IncrementalZendeskStream):
                 th.Property("size", th.IntegerType),
                 th.Property("mapped_content_url", th.StringType),
                 th.Property("id", th.IntegerType),
-                th.Property("height", th.IntegerType)
+                th.Property("height", th.IntegerType),
+                th.Property("deleted", th.BooleanType)
             ))),
             th.Property("width", th.IntegerType),
             th.Property("url", th.StringType),
@@ -84,7 +87,7 @@ class UsersStream(IncrementalZendeskStream):
         th.Property("suspended", th.BooleanType),
         th.Property("shared_agent", th.BooleanType),
         th.Property("shared_phone_number", th.BooleanType),
-        th.Property("user_fields", th.ObjectType(additional_properties=True)),
+        th.Property("user_fields", th.CustomType({"type": ["object", "null"]})),
         th.Property("last_login_at", th.DateTimeType),
         th.Property("alias", th.StringType),
         th.Property("two_factor_auth_enabled", th.BooleanType),
@@ -98,7 +101,8 @@ class UsersStream(IncrementalZendeskStream):
         th.Property("ticket_restriction", th.StringType),
         th.Property("locale", th.StringType),
         th.Property("report_csv", th.BooleanType),
-        th.Property("iana_time_zone", th.StringType)
+        th.Property("iana_time_zone", th.StringType),
+        th.Property("from_messaging_channel", th.BooleanType),
     ).to_dict()
 
 
@@ -189,7 +193,7 @@ class TicketsStream(IncrementalZendeskStream):
         th.Property("custom_fields", th.ArrayType(
             th.ObjectType(
                 th.Property("id", th.IntegerType),
-                th.Property("value", th.CustomType({'type': ['string', 'boolean', 'array', 'object', 'null']}))
+                th.Property("value", th.AnyType)
             )
         ))
     ).to_dict()
@@ -394,7 +398,7 @@ class TicketCommentsStream(ZendeskStream):
             )),
         )),
         th.Property("metadata", th.ObjectType(
-            th.Property("custom", th.ObjectType(additional_properties=True)),
+            th.Property("custom", th.CustomType({"type": ["object", "null"]})),
             th.Property("trusted", th.BooleanType),
             th.Property("notifications_suppressed_for", th.ArrayType(th.IntegerType)),
             th.Property("flags_options", th.ObjectType(
