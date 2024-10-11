@@ -3,10 +3,12 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Optional
+from urllib.parse import urlparse, parse_qs
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
 from tap_zendesk.client import ZendeskStream, IncrementalZendeskStream, NonIncrementalZendeskStream
+from tap_zendesk.helpers.schema import ATTACHMENTS_PROPERTY, METADATA_PROPERTY
 
 
 class GroupsStream(NonIncrementalZendeskStream):
@@ -106,15 +108,9 @@ class UsersStream(IncrementalZendeskStream):
     ).to_dict()
 
 
-class TicketsStream(IncrementalZendeskStream):
-    name = "tickets"
-    path = "/api/v2/incremental/tickets/cursor.json"
-    primary_keys = ["id"]
-    replication_key = "updated_at"
-    records_jsonpath = "$.tickets[*]"
-    next_page_token_jsonpath = "$.after_cursor"
-    schema = th.PropertiesList(
+TICKET_FIELDS = (
         th.Property("id", th.IntegerType),
+        th.Property("custom_status_id", th.IntegerType),
         th.Property("organization_id", th.IntegerType),
         th.Property("requester_id", th.IntegerType),
         th.Property("problem_id", th.IntegerType),
@@ -196,6 +192,38 @@ class TicketsStream(IncrementalZendeskStream):
                 th.Property("value", th.AnyType)
             )
         ))
+)
+
+
+class TicketsStream(IncrementalZendeskStream):
+    name = "tickets"
+    path = "/api/v2/incremental/tickets/cursor.json"
+    primary_keys = ["id"]
+    replication_key = "updated_at"
+    records_jsonpath = "$.tickets[*]"
+    next_page_token_jsonpath = "$.after_cursor"
+    schema = th.PropertiesList(*TICKET_FIELDS).to_dict()
+
+
+    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+        """Return a context dictionary for child streams."""
+        self.logger.debug(f"Creating child context for ticket_id: {record['id']}")
+        return {
+            "ticket_id": int(record["id"]),
+        }
+
+
+class TicketsSideloadingStream(IncrementalZendeskStream):
+    name = "tickets-sideloading"
+    path = "/api/v2/incremental/tickets/cursor.json?include=metric_events,slas"
+    primary_keys = ["id"]
+    replication_key = "updated_at"
+    records_jsonpath = "$.tickets[*]"
+    next_page_token_jsonpath = "$.after_cursor"
+    schema = th.PropertiesList(
+        *TICKET_FIELDS,
+        th.Property("metric_events", th.CustomType({"type": ["object", "null"]})),
+        th.Property("slas", th.CustomType({"type": ["object", "null"]})),
     ).to_dict()
 
 
@@ -219,63 +247,10 @@ class TicketAuditsStream(ZendeskStream):
         th.Property("ticket_id", th.IntegerType),
         th.Property("created_at", th.DateTimeType),
         th.Property("author_id", th.IntegerType),
-        th.Property("metadata", th.ObjectType(
-            th.Property("custom", th.CustomType({'type': ['string', 'null', 'object']})),
-            th.Property("trusted", th.BooleanType),
-            th.Property("notifications_suppressed_for", th.ArrayType(th.IntegerType)),
-            th.Property("flags_options", th.ObjectType(
-                th.Property("2", th.ObjectType(
-                    th.Property("trusted", th.BooleanType)
-                )),
-                th.Property("11", th.ObjectType(
-                    th.Property("trusted", th.BooleanType),
-                    th.Property("message", th.ObjectType(
-                        th.Property("user", th.StringType)
-                    ))
-                ))
-            )),
-            th.Property("flags", th.ArrayType(th.IntegerType)),
-            th.Property("system", th.ObjectType(
-                th.Property("location", th.StringType),
-                th.Property("longitude", th.NumberType),
-                th.Property("message_id", th.StringType),
-                th.Property("raw_email_identifier", th.StringType),
-                th.Property("ip_address", th.StringType),
-                th.Property("json_email_identifier", th.StringType),
-                th.Property("client", th.StringType),
-                th.Property("latitude", th.NumberType)
-            ))
-        )),
+        METADATA_PROPERTY,
         th.Property("events", th.ArrayType(
             th.ObjectType(
-                th.Property("attachments", th.ArrayType(
-                    th.ObjectType(
-                        th.Property("id", th.IntegerType),
-                        th.Property("size", th.IntegerType),
-                        th.Property("url", th.StringType),
-                        th.Property("inline", th.BooleanType),
-                        th.Property("height", th.IntegerType),
-                        th.Property("width", th.IntegerType),
-                        th.Property("content_url", th.StringType),
-                        th.Property("mapped_content_url", th.StringType),
-                        th.Property("content_type", th.StringType),
-                        th.Property("file_name", th.StringType),
-                        th.Property("thumbnails", th.ArrayType(
-                            th.ObjectType(
-                                th.Property("id", th.IntegerType),
-                                th.Property("size", th.IntegerType),
-                                th.Property("url", th.StringType),
-                                th.Property("inline", th.BooleanType),
-                                th.Property("height", th.IntegerType),
-                                th.Property("width", th.IntegerType),
-                                th.Property("content_url", th.StringType),
-                                th.Property("mapped_content_url", th.StringType),
-                                th.Property("content_type", th.StringType),
-                                th.Property("file_name", th.StringType)
-                            )
-                        ))
-                    )
-                )),
+                ATTACHMENTS_PROPERTY,
                 th.Property("created_at", th.DateTimeType),
                 th.Property("data", th.ObjectType(
                     th.Property("transcription_status", th.StringType),
@@ -296,8 +271,7 @@ class TicketAuditsStream(ZendeskStream):
                 th.Property("subject", th.StringType),
                 th.Property("field_name", th.StringType),
                 th.Property("audit_id", th.IntegerType),
-                th.Property("value", th.CustomType(
-                    {'type': ['string', 'array', 'object', 'null'], 'items': {'type': 'string'}})),
+                th.Property("value", th.AnyType),
                 th.Property("author_id", th.IntegerType),
                 th.Property("via", th.ObjectType(
                     th.Property("channel", th.StringType),
@@ -322,13 +296,12 @@ class TicketAuditsStream(ZendeskStream):
                 )),
                 th.Property("type", th.StringType),
                 th.Property("macro_id", th.StringType),
-                th.Property("body", th.CustomType({'type': ['string', 'object', 'array', 'null']})),
+                th.Property("body", th.AnyType),
                 th.Property("recipients", th.ArrayType(th.IntegerType)),
                 th.Property("macro_deleted", th.BooleanType),
                 th.Property("plain_body", th.StringType),
                 th.Property("id", th.IntegerType),
-                th.Property("previous_value", th.CustomType(
-                    {'type': ['string', 'array', 'object', 'null'], 'items': {'type': 'string'}})),
+                th.Property("previous_value", th.AnyType),
                 th.Property("macro_title", th.StringType),
                 th.Property("public", th.BooleanType),
                 th.Property("resource", th.StringType)
@@ -356,6 +329,38 @@ class TicketAuditsStream(ZendeskStream):
             ))
         ))
     ).to_dict()
+
+
+class TicketEventsStream(IncrementalZendeskStream):
+    name = "ticket_events"
+    path = "/api/v2/incremental/ticket_events.json?include=comment_events"
+    primary_keys = ["id"]
+    replication_key = "created_at"
+    records_jsonpath = "$.ticket_events[*]"
+    next_page_token_jsonpath = "$.next_page"
+    schema = th.PropertiesList(
+        th.Property("id", th.IntegerType),
+        th.Property("ticket_id", th.IntegerType),
+        th.Property("timestamp", th.IntegerType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("updater_id", th.IntegerType),
+        th.Property("via", th.StringType),
+        th.Property("child_events", th.CustomType({"type": ["array", "null"]})),
+        th.Property("system", th.CustomType({"type": ["object", "null"]})),
+        th.Property("metadata", th.CustomType({"type": ["object", "null"]})),
+        th.Property("merged_ticket_ids", th.ArrayType(th.IntegerType)),
+        th.Property("event_type", th.StringType),
+    ).to_dict()
+
+    def get_url_params(
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        params = super().get_url_params(context, next_page_token)
+        if next_page_token:
+            params = parse_qs(urlparse(next_page_token).query)
+        return params
 
 
 class TicketCommentsStream(ZendeskStream):
@@ -397,57 +402,8 @@ class TicketCommentsStream(ZendeskStream):
                 th.Property("rel", th.StringType)
             )),
         )),
-        th.Property("metadata", th.ObjectType(
-            th.Property("custom", th.CustomType({"type": ["object", "null"]})),
-            th.Property("trusted", th.BooleanType),
-            th.Property("notifications_suppressed_for", th.ArrayType(th.IntegerType)),
-            th.Property("flags_options", th.ObjectType(
-                th.Property("2", th.ObjectType(
-                    th.Property("trusted", th.BooleanType)
-                )),
-                th.Property("11", th.ObjectType(
-                    th.Property("trusted", th.BooleanType),
-                    th.Property("message", th.ObjectType(
-                        th.Property("user", th.StringType)
-                    ))
-                ))
-            )),
-            th.Property("flags", th.ArrayType(th.IntegerType)),
-            th.Property("system", th.ObjectType(
-                th.Property("location", th.StringType),
-                th.Property("longitude", th.NumberType),
-                th.Property("message_id", th.StringType),
-                th.Property("raw_email_identifier", th.StringType),
-                th.Property("ip_address", th.StringType),
-                th.Property("json_email_identifier", th.StringType),
-                th.Property("client", th.StringType),
-                th.Property("latitude", th.NumberType)
-            ))
-        )),
-        th.Property("attachments", th.ArrayType(th.ObjectType(
-            th.Property("id", th.IntegerType),
-            th.Property("size", th.IntegerType),
-            th.Property("url", th.StringType),
-            th.Property("inline", th.BooleanType),
-            th.Property("height", th.IntegerType),
-            th.Property("width", th.IntegerType),
-            th.Property("content_url", th.StringType),
-            th.Property("mapped_content_url", th.StringType),
-            th.Property("content_type", th.StringType),
-            th.Property("file_name", th.StringType),
-            th.Property("thumbnails", th.ArrayType(th.ObjectType(
-                th.Property("id", th.IntegerType),
-                th.Property("size", th.IntegerType),
-                th.Property("url", th.StringType),
-                th.Property("inline", th.BooleanType),
-                th.Property("height", th.IntegerType),
-                th.Property("width", th.IntegerType),
-                th.Property("content_url", th.StringType),
-                th.Property("mapped_content_url", th.StringType),
-                th.Property("content_type", th.StringType),
-                th.Property("file_name", th.StringType)
-            )))
-        )))
+        METADATA_PROPERTY,
+        ATTACHMENTS_PROPERTY
     ).to_dict()
 
 
@@ -458,6 +414,7 @@ class TicketMetricsStream(ZendeskStream):
     primary_keys = ["id"]
     records_jsonpath = "$.ticket_metric[*]"
     next_page_token_jsonpath = "$.meta.after_cursor"
+    state_partitioning_keys = []
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("ticket_id", th.IntegerType),
@@ -522,7 +479,7 @@ class TicketMetricEventsStream(IncrementalZendeskStream):
         th.Property("metric", th.StringType),
         th.Property("instance_id", th.IntegerType),
         th.Property("type", th.StringType),
-        th.Property("time", th.StringType),
+        th.Property("time", th.DateTimeType),
         th.Property("sla", th.ObjectType(
             th.Property("target", th.IntegerType),
             th.Property("business_hours", th.BooleanType),
@@ -582,8 +539,9 @@ class SatisfactionRatingsStream(NonIncrementalZendeskStream):
             next_page_token: Any | None,
     ) -> dict[str, Any]:
         params = super().get_url_params(context, next_page_token)
-        end_date = datetime.fromisoformat(self.config.get('end_date'))
-        params.update({"end_time": int(end_date.timestamp())})
+        if 'end_date' in self.config:
+            end_date = datetime.fromisoformat(self.config.get('end_date'))
+            params.update({"end_time": int(end_date.timestamp())})
         params.update({"start_time": self.get_start_time(context)})
 
         if next_page_token:
@@ -607,12 +565,12 @@ class SlaPoliciesStream(ZendeskStream):
             th.Property("all", th.ArrayType(th.ObjectType(
                 th.Property("field", th.StringType),
                 th.Property("operator", th.StringType),
-                th.Property("value", th.OneOf(th.StringType, th.IntegerType))
+                th.Property("value", th.AnyType)
             ))),
             th.Property("any", th.ArrayType(th.ObjectType(
                 th.Property("field", th.StringType),
                 th.Property("operator", th.StringType),
-                th.Property("value", th.OneOf(th.StringType, th.IntegerType))
+                th.Property("value", th.AnyType)
             )))
         )),
         th.Property("policy_metrics", th.ArrayType(th.ObjectType(
