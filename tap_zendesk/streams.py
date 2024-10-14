@@ -582,3 +582,13 @@ class SlaPoliciesStream(ZendeskStream):
         th.Property("created_at", th.DateTimeType),
         th.Property("updated_at", th.DateTimeType),
     ).to_dict()
+
+    def get_url_params(
+            self,
+            context: dict | None,
+            next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        params = super().get_url_params(context, next_page_token)
+        if next_page_token:
+            params = parse_qs(urlparse(next_page_token).query)
+        return params

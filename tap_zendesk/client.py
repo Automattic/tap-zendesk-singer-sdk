@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import time
 from datetime import datetime, timezone
 from time import sleep
-from typing import Any, Callable, Iterable, Optional, Dict
+from typing import Any, Callable, Iterable
 
 import requests
-from requests import Response, PreparedRequest
 from singer_sdk.authenticators import BasicAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
 from singer_sdk.streams import RESTStream
@@ -26,9 +24,7 @@ class ZendeskStream(RESTStream):
     @property
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
-        subdomain = self.config.get("subdomain", "")
-        self.logger.debug(f'subdomain: {subdomain}')
-        return f"https://{subdomain}.zendesk.com"
+        return f"https://{self.config['subdomain']}.zendesk.com"
 
     @property
     def authenticator(self) -> BasicAuthenticator:
@@ -37,12 +33,10 @@ class ZendeskStream(RESTStream):
         Returns:
             An authenticator instance.
         """
-        email = self.config.get("email", "")
-        api_token = self.config.get("api_token", "")
-        return BasicAuthenticator.create_for_stream(
+        return BasicAuthenticator(
             self,
-            username=f"{email}/token",
-            password=api_token
+            username=f"{self.config['email']}/token",
+            password=self.config['api_token']
         )
 
     def get_url_params(
@@ -69,21 +63,17 @@ class ZendeskStream(RESTStream):
         if not response.content:
             raise ValueError(f"Received empty response for URL: {response.url}")
 
-        response_json = response.json()
-        end_date_str = self.config.get("end_date")
-        end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
+        end_date = datetime.fromisoformat(self.config.get("end_date")) if self.config.get("end_date") else None
 
         if end_date and end_date.tzinfo is None:
             end_date = end_date.replace(tzinfo=timezone.utc)
 
-        replication_key = self.replication_key
-
-        for record in extract_jsonpath(self.records_jsonpath, input=response_json):
+        for record in extract_jsonpath(self.records_jsonpath, input=response.json()):
             if not record:
                 self.logger.error("Received empty record")
                 continue
 
-            if self._does_record_date_exceed_end_date(record, replication_key, end_date):
+            if self._does_record_date_exceed_end_date(record, self.replication_key, end_date):
                 return
 
             yield record
@@ -124,48 +114,9 @@ class ZendeskStream(RESTStream):
                                 f"Tap will retry the data collection after {seconds_to_sleep} seconds.")
             sleep(seconds_to_sleep)
 
-    def _request(
-        self,
-        prepared_request: PreparedRequest,
-        context: Optional[Dict[str, Any]] = None,
-    ) -> Response:
-        """Send a HTTP request with rate limiting.
-
-        Args:
-            prepared_request: The prepared HTTP request.
-            context: Stream partition or context dictionary.
-
-        Returns:
-            The HTTP response object.
-        """
-
-        response = self.requests_session.send(
-            prepared_request,
-            timeout=self.timeout,
-            allow_redirects=self.allow_redirects,
-        )
-
-        self.last_request_time = time.time()
-
-        self._write_request_duration_log(
-            endpoint=self.path,
-            response=response,
-            context=context,
-            extra_tags={"url": prepared_request.path_url}
-            if self._LOG_REQUEST_METRIC_URLS
-            else None,
-        )
-
-        # Check for 404 Not Found and log a warning
-        if response.status_code == 404 or response.status_code == 400:
-            raise Exception(f"Received {response.status_code} for URL: {response.url}")
-
-        # Rate throttling check
+    def validate_response(self, response: requests.Response) -> None:
         self.check_rate_throttling(response)
-
-        self.validate_response(response)
-        self.logger.debug("Response received successfully.")
-        return response
+        super().validate_response(response)
 
 
 class IncrementalZendeskStream(ZendeskStream):
