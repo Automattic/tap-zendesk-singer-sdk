@@ -579,7 +579,15 @@ class SlaPoliciesStream(ZendeskStream):
                 th.Property("value", th.AnyType)
             )))
         )),
-        th.Property("policy_metrics", th.CustomType({"type": ["object", "null"]})),
+        th.Property("policy_metrics", th.ArrayType(
+            th.ObjectType(
+                th.Property("priority", th.StringType),
+                th.Property("metric", th.StringType),
+                th.Property("target", th.IntegerType),
+                th.Property("target_in_seconds", th.IntegerType),
+                th.Property("business_hours", th.BooleanType),
+            )
+        )),
         th.Property("created_at", th.DateTimeType),
         th.Property("updated_at", th.DateTimeType),
     ).to_dict()

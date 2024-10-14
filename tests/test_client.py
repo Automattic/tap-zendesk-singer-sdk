@@ -1,8 +1,16 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 from tap_zendesk.client import ZendeskStream
 from singer_sdk import typing as th
 import logging
+
+@pytest.fixture(autouse=True)
+def mock_sleep():
+    with patch('tap_zendesk.client.sleep', return_value=None) as mock_sleep:
+        yield mock_sleep
 
 
 class TestZendeskStream(unittest.TestCase):
