@@ -254,6 +254,45 @@ class TicketsSideloadingStream(IncrementalZendeskStream):
         }
 
 
+class TicketFieldsStream(NonIncrementalZendeskStream):
+    name = "ticket_fields"
+    path = "/api/v2/ticket_fields.json"
+    primary_keys = ["id"]
+    records_jsonpath = "$.ticket_fields[*]"
+    schema = th.PropertiesList(
+        th.Property("id", th.IntegerType),
+        th.Property("position", th.IntegerType),
+        th.Property("active", th.BooleanType),
+        th.Property("agent_description", th.StringType),
+        th.Property("collapsed_for_agents", th.BooleanType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("creator_app_name", th.StringType),
+        th.Property("creator_user_id", th.IntegerType),
+        th.Property("custom_field_options", th.ArrayType(th.AnyType)),
+        th.Property("custom_statuses", th.ArrayType(th.AnyType)),
+        th.Property("description", th.StringType),
+        th.Property("editable_in_portal", th.BooleanType),
+        th.Property("raw_description", th.StringType),
+        th.Property("raw_title", th.StringType),
+        th.Property("raw_title_in_portal", th.StringType),
+        th.Property("regexp_for_validation", th.StringType),
+        th.Property("relationship_filter", th.CustomType({"type": ["object", "null"]})),
+        th.Property("relationship_target_type", th.StringType),
+        th.Property("removable", th.BooleanType),
+        th.Property("required", th.BooleanType),
+        th.Property("required_in_portal", th.BooleanType),
+        th.Property("sub_type_id", th.IntegerType),
+        th.Property("system_field_options", th.ArrayType(th.AnyType)),
+        th.Property("tag", th.StringType),
+        th.Property("title", th.StringType),
+        th.Property("title_in_portal", th.StringType),
+        th.Property("type", th.StringType),
+        th.Property("updated_at", th.DateTimeType),
+        th.Property("url", th.StringType),
+        th.Property("visible_in_portal", th.BooleanType),
+    ).to_dict()
+
+
 class TicketAuditsStream(NonIncrementalZendeskStream):
     name = "ticket_audits"
     parent_stream_type = TicketsStream
