@@ -5,14 +5,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from time import sleep
 from typing import Any, Callable, Iterable
+from urllib.parse import parse_qsl
 
 import requests
+from requests import Response
 from singer_sdk.authenticators import BasicAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
+from singer_sdk.pagination import BaseHATEOASPaginator
 from singer_sdk.streams import RESTStream
 
 _Auth = Callable[[requests.PreparedRequest], requests.PreparedRequest]
-
 
 class ZendeskStream(RESTStream):
     """Zendesk stream class."""
@@ -123,6 +125,24 @@ class ZendeskStream(RESTStream):
         super().validate_response(response)
 
 
+class IncrementalPaginator(BaseHATEOASPaginator):
+    def get_next_url(self, response: Response) -> str:
+        raise NotImplementedError()
+
+    def has_more(self, response: Response) -> bool:
+        return not bool(response.json().get("end_of_stream"))
+
+
+class IncrementalCursorBasedPaginator(IncrementalPaginator):
+    def get_next_url(self, response: Response) -> str:
+        return response.json().get("after_url")
+
+
+class IncrementalTimeBasedPaginator(IncrementalPaginator):
+    def get_next_url(self, response: Response) -> str:
+        return response.json().get("next_page")
+
+
 class IncrementalZendeskStream(ZendeskStream):
     pagination_size = 1000
 
@@ -132,12 +152,20 @@ class IncrementalZendeskStream(ZendeskStream):
             next_page_token: Any | None,
     ) -> dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization."""
-        params = {"per_page": self.pagination_size}
         if next_page_token:
-            params["cursor"] = next_page_token
-        else:
-            params["start_time"] = self.get_start_time(context)
-        return params
+            return dict(parse_qsl(next_page_token.query))
+        return {
+            "per_page": self.pagination_size,
+            "start_time": self.get_start_time(context)
+        }
+
+    def get_new_paginator(self):
+        return IncrementalCursorBasedPaginator() if 'cursor.json' in self.path else IncrementalTimeBasedPaginator()
+
+
+class CursorPaginator(BaseHATEOASPaginator):
+    def get_next_url(self, response: Response) -> str:
+        return response.json().get("links", {}).get("next", {})
 
 
 class NonIncrementalZendeskStream(ZendeskStream):
@@ -149,7 +177,11 @@ class NonIncrementalZendeskStream(ZendeskStream):
             next_page_token: Any | None,
     ) -> dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization."""
-        params: dict = {"page[size]": self.pagination_size}
         if next_page_token:
-            params["page[after]"] = next_page_token
-        return params
+            return dict(parse_qsl(next_page_token.query))
+        if self.pagination_size:
+            return {"page[size]": self.pagination_size}
+        return {}
+
+    def get_new_paginator(self):
+        return CursorPaginator()

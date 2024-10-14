@@ -51,6 +51,7 @@ class TapZendesk(Tap):
             A list of discovered streams.
         """
         return [
+            streams.OrganizationsStream(self),
             streams.SlaPoliciesStream(self),
             streams.SatisfactionRatingsStream(self),
             streams.TagsStream(self),

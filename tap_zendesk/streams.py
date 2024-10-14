@@ -14,10 +14,9 @@ from tap_zendesk.helpers.schema import ATTACHMENTS_PROPERTY, METADATA_PROPERTY
 class GroupsStream(NonIncrementalZendeskStream):
     name = "groups"
     path = "/api/v2/groups.json?exclude_deleted=false"
-    pagination_size = 100
+    pagination_size = 50
     primary_keys = ["id"]
     records_jsonpath = "$.groups[*]"
-    next_page_token_jsonpath = "$.after_cursor"
     schema = th.PropertiesList(
         th.Property("created_at", th.DateTimeType),
         th.Property("updated_at", th.DateTimeType),
@@ -30,14 +29,36 @@ class GroupsStream(NonIncrementalZendeskStream):
         th.Property("url", th.StringType),
     ).to_dict()
 
+class OrganizationsStream(IncrementalZendeskStream):
+    name = "organizations"
+    path = "/api/v2/incremental/organizations"
+    primary_keys = ["id"]
+    records_jsonpath = "$.organizations[*]"
+    replication_key = "updated_at"
+    schema = th.PropertiesList(
+        th.Property("created_at", th.DateTimeType),
+        th.Property("details", th.StringType),
+        th.Property("domain_names", th.ArrayType(th.StringType)),
+        th.Property("group_id", th.IntegerType),
+        th.Property("id", th.IntegerType),
+        th.Property("external_id", th.IntegerType),
+        th.Property("name", th.StringType),
+        th.Property("notes", th.StringType),
+        th.Property("organization_fields", th.CustomType({"type": ["object", "null"]})),
+        th.Property("shared_comments", th.BooleanType),
+        th.Property("shared_tickets", th.BooleanType),
+        th.Property("tags", th.ArrayType(th.StringType)),
+        th.Property("updated_at", th.DateTimeType),
+        th.Property("url", th.StringType),
+    ).to_dict()
+
 
 class UsersStream(IncrementalZendeskStream):
     name = "users"
     path = "/api/v2/incremental/users/cursor.json"
     primary_keys = ["id"]
-    replication_key = "created_at"
+    replication_key = "updated_at"
     records_jsonpath = "$.users[*]"  # Adjusted to match the correct JSON path for users.
-    next_page_token_jsonpath = "$.after_cursor"
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("custom_status_id", th.IntegerType),
@@ -104,7 +125,6 @@ class UsersStream(IncrementalZendeskStream):
         th.Property("locale", th.StringType),
         th.Property("report_csv", th.BooleanType),
         th.Property("iana_time_zone", th.StringType),
-        th.Property("from_messaging_channel", th.BooleanType),
     ).to_dict()
 
 
@@ -191,7 +211,8 @@ TICKET_FIELDS = (
                 th.Property("id", th.IntegerType),
                 th.Property("value", th.AnyType)
             )
-        ))
+        )),
+        th.Property("from_messaging_channel", th.BooleanType),
 )
 
 
@@ -201,7 +222,6 @@ class TicketsStream(IncrementalZendeskStream):
     primary_keys = ["id"]
     replication_key = "updated_at"
     records_jsonpath = "$.tickets[*]"
-    next_page_token_jsonpath = "$.after_cursor"
     schema = th.PropertiesList(*TICKET_FIELDS).to_dict()
 
 
@@ -219,7 +239,6 @@ class TicketsSideloadingStream(IncrementalZendeskStream):
     primary_keys = ["id"]
     replication_key = "updated_at"
     records_jsonpath = "$.tickets[*]"
-    next_page_token_jsonpath = "$.after_cursor"
     schema = th.PropertiesList(
         *TICKET_FIELDS,
         th.Property("metric_events", th.CustomType({"type": ["object", "null"]})),
@@ -235,13 +254,12 @@ class TicketsSideloadingStream(IncrementalZendeskStream):
         }
 
 
-class TicketAuditsStream(ZendeskStream):
+class TicketAuditsStream(NonIncrementalZendeskStream):
     name = "ticket_audits"
     parent_stream_type = TicketsStream
     path = "/api/v2/tickets/{ticket_id}/audits.json"
     primary_keys = ["id"]
     records_jsonpath = "$.audits[*]"
-    next_page_token_jsonpath = "$.meta.after_cursor"
     state_partitioning_keys = []
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
@@ -307,7 +325,7 @@ class TicketAuditsStream(ZendeskStream):
                     {'type': ['string', 'array', 'object', 'null'], 'items': {'type': 'string'}})),
                 th.Property("macro_title", th.StringType),
                 th.Property("public", th.BooleanType),
-                th.Property("resource", th.StringType)
+                th.Property("resource", th.StringType),
             )
         )),
         th.Property("via", th.ObjectType(
@@ -340,7 +358,6 @@ class TicketEventsStream(IncrementalZendeskStream):
     primary_keys = ["id"]
     replication_key = "created_at"
     records_jsonpath = "$.ticket_events[*]"
-    next_page_token_jsonpath = "$.next_page"
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("ticket_id", th.IntegerType),
@@ -355,24 +372,13 @@ class TicketEventsStream(IncrementalZendeskStream):
         th.Property("event_type", th.StringType),
     ).to_dict()
 
-    def get_url_params(
-            self,
-            context: dict | None,
-            next_page_token: Any | None,
-    ) -> dict[str, Any]:
-        params = super().get_url_params(context, next_page_token)
-        if next_page_token:
-            params = parse_qs(urlparse(next_page_token).query)
-        return params
 
-
-class TicketCommentsStream(ZendeskStream):
+class TicketCommentsStream(NonIncrementalZendeskStream):
     name = "ticket_comments"
     parent_stream_type = TicketsStream
     path = "/api/v2/tickets/{ticket_id}/comments.json"
     primary_keys = ["id"]
     records_jsonpath = "$.comments[*]"
-    next_page_token_jsonpath = "$.meta.after_cursor"
     state_partitioning_keys = []
     schema = th.PropertiesList(
         th.Property("created_at", th.DateTimeType),
@@ -411,14 +417,14 @@ class TicketCommentsStream(ZendeskStream):
     ).to_dict()
 
 
-class TicketMetricsStream(ZendeskStream):
+class TicketMetricsStream(NonIncrementalZendeskStream):
     name = "ticket_metrics"
     parent_stream_type = TicketsStream
     path = "/api/v2/tickets/{ticket_id}/metrics.json"
     primary_keys = ["id"]
     records_jsonpath = "$.ticket_metric[*]"
-    next_page_token_jsonpath = "$.meta.after_cursor"
     state_partitioning_keys = []
+    pagination_size = None
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("ticket_id", th.IntegerType),
@@ -476,7 +482,6 @@ class TicketMetricEventsStream(IncrementalZendeskStream):
     primary_keys = ["id"]
     replication_key = "time"
     records_jsonpath = "$.ticket_metric_events[*]"
-    next_page_token_jsonpath = "$.meta.after_cursor"
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("ticket_id", th.IntegerType),
@@ -507,7 +512,6 @@ class TagsStream(NonIncrementalZendeskStream):
     pagination_size = 1000
     primary_keys = ["name"]
     records_jsonpath = "$.tags[*]"
-    next_page_token_jsonpath = "$.meta.after_cursor"
     schema = th.PropertiesList(
         th.Property("count", th.IntegerType),
         th.Property("name", th.StringType),
@@ -517,11 +521,9 @@ class TagsStream(NonIncrementalZendeskStream):
 class SatisfactionRatingsStream(NonIncrementalZendeskStream):
     name = "satisfaction_ratings"
     path = "/api/v2/satisfaction_ratings.json"
-    pagination_size = 100
     primary_keys = ["id"]
     replication_key = "updated_at"
     records_jsonpath = "$.satisfaction_ratings[*]"
-    next_page_token_jsonpath = "$.meta.after_cursor"
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("assignee_id", th.IntegerType),
@@ -543,13 +545,13 @@ class SatisfactionRatingsStream(NonIncrementalZendeskStream):
             next_page_token: Any | None,
     ) -> dict[str, Any]:
         params = super().get_url_params(context, next_page_token)
+        if next_page_token:
+            return params
+
         if 'end_date' in self.config:
             end_date = datetime.fromisoformat(self.config.get('end_date'))
             params.update({"end_time": int(end_date.timestamp())})
         params.update({"start_time": self.get_start_time(context)})
-
-        if next_page_token:
-            params["page[after]"] = next_page_token
         return params
 
 
@@ -577,12 +579,7 @@ class SlaPoliciesStream(ZendeskStream):
                 th.Property("value", th.AnyType)
             )))
         )),
-        th.Property("policy_metrics", th.ArrayType(th.ObjectType(
-            th.Property("priority", th.StringType),
-            th.Property("target", th.IntegerType),
-            th.Property("business_hours", th.BooleanType),
-            th.Property("metric", th.StringType)
-        ))),
+        th.Property("policy_metrics", th.CustomType({"type": ["object", "null"]})),
         th.Property("created_at", th.DateTimeType),
         th.Property("updated_at", th.DateTimeType),
     ).to_dict()
