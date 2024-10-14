@@ -214,7 +214,7 @@ class TicketsStream(IncrementalZendeskStream):
 
 
 class TicketsSideloadingStream(IncrementalZendeskStream):
-    name = "tickets-sideloading"
+    name = "tickets_sideloading"
     path = "/api/v2/incremental/tickets/cursor.json?include=metric_events,slas"
     primary_keys = ["id"]
     replication_key = "updated_at"
@@ -242,6 +242,7 @@ class TicketAuditsStream(ZendeskStream):
     primary_keys = ["id"]
     records_jsonpath = "$.audits[*]"
     next_page_token_jsonpath = "$.meta.after_cursor"
+    state_partitioning_keys = []
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("ticket_id", th.IntegerType),
@@ -271,7 +272,8 @@ class TicketAuditsStream(ZendeskStream):
                 th.Property("subject", th.StringType),
                 th.Property("field_name", th.StringType),
                 th.Property("audit_id", th.IntegerType),
-                th.Property("value", th.AnyType),
+                th.Property("value", th.CustomType(
+                    {'type': ['string', 'array', 'object', 'null'], 'items': {'type': 'string'}})),
                 th.Property("author_id", th.IntegerType),
                 th.Property("via", th.ObjectType(
                     th.Property("channel", th.StringType),
@@ -296,12 +298,13 @@ class TicketAuditsStream(ZendeskStream):
                 )),
                 th.Property("type", th.StringType),
                 th.Property("macro_id", th.StringType),
-                th.Property("body", th.AnyType),
+                th.Property("body", th.CustomType({'type': ['string', 'object', 'array', 'null']})),
                 th.Property("recipients", th.ArrayType(th.IntegerType)),
                 th.Property("macro_deleted", th.BooleanType),
                 th.Property("plain_body", th.StringType),
                 th.Property("id", th.IntegerType),
-                th.Property("previous_value", th.AnyType),
+                th.Property("previous_value", th.CustomType(
+                    {'type': ['string', 'array', 'object', 'null'], 'items': {'type': 'string'}})),
                 th.Property("macro_title", th.StringType),
                 th.Property("public", th.BooleanType),
                 th.Property("resource", th.StringType)
@@ -370,6 +373,7 @@ class TicketCommentsStream(ZendeskStream):
     primary_keys = ["id"]
     records_jsonpath = "$.comments[*]"
     next_page_token_jsonpath = "$.meta.after_cursor"
+    state_partitioning_keys = []
     schema = th.PropertiesList(
         th.Property("created_at", th.DateTimeType),
         th.Property("body", th.StringType),

@@ -115,6 +115,10 @@ class ZendeskStream(RESTStream):
             sleep(seconds_to_sleep)
 
     def validate_response(self, response: requests.Response) -> None:
+        # Check for 404 Not Found and log a warning
+        if response.status_code == 404 or response.status_code == 400:
+            raise Exception(f"Received {response.status_code} for URL: {response.url}")
+
         self.check_rate_throttling(response)
         super().validate_response(response)
 
