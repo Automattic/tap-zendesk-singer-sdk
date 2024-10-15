@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from time import sleep
 from typing import Any, Callable, Iterable
 from urllib.parse import parse_qsl
@@ -57,8 +57,11 @@ class ZendeskStream(RESTStream):
     def get_start_time(self, context: dict | None) -> int:
         """Get the start time for the initial incremental export."""
         replication_key_value = self.get_starting_replication_key_value(context)
-        # Parse the string to a datetime object
-        record_date = datetime.fromisoformat(replication_key_value)
+        # The start_time of the initial export is arbitrary.
+        # The time must be more than one minute in the past to avoid missing data.
+        # To prevent race conditions, the ticket and ticket event export endpoints
+        # will not return data for the most recent minute.
+        record_date = datetime.fromisoformat(replication_key_value) - timedelta(minutes=1)
         start_time = int(record_date.timestamp())
         return start_time
 
