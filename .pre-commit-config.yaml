@@ -5,7 +5,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v5.0.0
     hooks:
     - id: check-json
     - id: check-toml
@@ -14,25 +14,25 @@ repos:
     - id: trailing-whitespace
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.23.0
+    rev: 0.29.4
     hooks:
     - id: check-dependabot
     - id: check-github-workflows
 
   - repo: https://github.com/psf/black
-    rev: stable
+    rev: 24.10.0
     hooks:
       - id: black
         args: [--skip-string-normalization]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.3.0
+    rev: v1.12.0
     hooks:
     - id: mypy
       additional_dependencies:
       - types-requests
 
   - repo: https://github.com/zricethezav/gitleaks
-    rev: v8.17.0
+    rev: v8.21.0
     hooks:
       - id: gitleaks
