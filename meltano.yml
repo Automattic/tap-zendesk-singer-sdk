@@ -21,7 +21,7 @@ plugins:
         and is not required in the configuration.
     - name: api_token
       label: API Token
-      description: See 
+      description: See
         https://support.zendesk.com/hc/en-us/articles/226022787-Generating-a-new-API-token-
         for more details about generating an API Token.
     - name: access_token
@@ -47,6 +47,21 @@ plugins:
       label: Minimum Remain Rate Limit
       description: Sets a limit to the remain rate that the tap will not will not
         overtake (it will wait for the reset)
+    select:
+      - tickets.*
+      - tickets_sideloading.*
+      # - ticket_audits.*
+      - ticket_metric_events.*
+      # - ticket_metrics.*
+      - ticket_events.*
+      - sla_policies.*
+      - groups.*
+      - organizations.*
+      # - ticket_comments.*
+      - ticket_fields.*
+      - satisfaction_ratings.*
+      - tags.*
+      - users.*
   loaders:
   - name: target-parquet
     variant: automattic
@@ -54,4 +69,3 @@ plugins:
   - name: target-jsonl
     variant: andyh1203
     pip_url: target-jsonl
-

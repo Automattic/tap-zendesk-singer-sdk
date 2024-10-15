@@ -7,6 +7,7 @@ from tap_zendesk.client import ZendeskStream
 from singer_sdk import typing as th
 import logging
 
+
 @pytest.fixture(autouse=True)
 def mock_sleep():
     with patch('tap_zendesk.client.sleep', return_value=None) as mock_sleep:
@@ -17,14 +18,12 @@ class TestZendeskStream(unittest.TestCase):
     def setUp(self):
         """Set up test dependencies."""
         self.tap_mock = MagicMock()
-        self.tap_mock.config = {
-            "min_remain_rate_limit": 10
-        }
-        dummy_schema = th.PropertiesList(
-            th.Property("id", th.StringType)
-        ).to_dict()
+        self.tap_mock.config = {"min_remain_rate_limit": 10}
+        dummy_schema = th.PropertiesList(th.Property("id", th.StringType)).to_dict()
 
-        self.zendesk_stream = ZendeskStream(self.tap_mock, name="dummy_stream", schema=dummy_schema)
+        self.zendesk_stream = ZendeskStream(
+            self.tap_mock, name="dummy_stream", schema=dummy_schema
+        )
         self.zendesk_stream.logger = logging.getLogger("ZendeskStreamLogger")
         self.zendesk_stream.logger.setLevel(logging.DEBUG)
         self.log_stream = logging.StreamHandler()
@@ -50,7 +49,7 @@ class TestZendeskStream(unittest.TestCase):
         response.headers = {
             'x-rate-limit-remaining': '5',
             'x-rate-limit': '700',
-            'rate-limit-reset': '30'
+            'rate-limit-reset': '30',
         }
 
         with self.assertLogs(self.zendesk_stream.logger, level='DEBUG') as log:

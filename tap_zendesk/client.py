@@ -16,8 +16,10 @@ from singer_sdk.streams import RESTStream
 
 _Auth = Callable[[requests.PreparedRequest], requests.PreparedRequest]
 
+
 class ZendeskStream(RESTStream):
     """Zendesk stream class."""
+
     def __init__(self, tap, name=None, schema=None, path=None):
         super().__init__(tap, name, schema, path)
         self.allow_redirects = False
@@ -38,13 +40,13 @@ class ZendeskStream(RESTStream):
         return BasicAuthenticator(
             self,
             username=f"{self.config['email']}/token",
-            password=self.config['api_token']
+            password=self.config['api_token'],
         )
 
     def get_url_params(
-            self,
-            context: dict | None,
-            next_page_token: Any | None,
+        self,
+        context: dict | None,
+        next_page_token: Any | None,
     ) -> dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization."""
         params: dict = {}
@@ -65,7 +67,11 @@ class ZendeskStream(RESTStream):
         if not response.content:
             raise ValueError(f"Received empty response for URL: {response.url}")
 
-        end_date = datetime.fromisoformat(self.config.get("end_date")) if self.config.get("end_date") else None
+        end_date = (
+            datetime.fromisoformat(self.config.get("end_date"))
+            if self.config.get("end_date")
+            else None
+        )
 
         if end_date and end_date.tzinfo is None:
             end_date = end_date.replace(tzinfo=timezone.utc)
@@ -75,12 +81,16 @@ class ZendeskStream(RESTStream):
                 self.logger.error("Received empty record")
                 continue
 
-            if self._does_record_date_exceed_end_date(record, self.replication_key, end_date):
+            if self._does_record_date_exceed_end_date(
+                record, self.replication_key, end_date
+            ):
                 return
 
             yield record
 
-    def _does_record_date_exceed_end_date(self, record: dict, replication_key: str, end_date: datetime) -> bool:
+    def _does_record_date_exceed_end_date(
+        self, record: dict, replication_key: str, end_date: datetime
+    ) -> bool:
         """Check if the record date exceeds the end date."""
         if end_date:
             record_date_str = record.get(replication_key)
@@ -90,7 +100,8 @@ class ZendeskStream(RESTStream):
                     record_date = record_date.replace(tzinfo=timezone.utc)
                 if record_date > end_date:
                     self.logger.info(
-                        f"Stopping data fetch as record date {record_date} exceeds end date {end_date}")
+                        f"Stopping data fetch as record date {record_date} exceeds end date {end_date}"
+                    )
                     return True
         return False
 
@@ -102,18 +113,32 @@ class ZendeskStream(RESTStream):
             return
 
         headers = response.headers
-        rate_limit_remain = int(headers.get('x-rate-limit-remaining', headers.get('ratelimit-remaining', 0)))
+        rate_limit_remain = int(
+            headers.get('x-rate-limit-remaining', headers.get('ratelimit-remaining', 0))
+        )
         rate_limit = int(headers.get('x-rate-limit', headers.get('ratelimit-limit', 0)))
-        rate_limit_resets_in_s = headers.get('rate-limit-reset', headers.get('ratelimit-reset'))
+        rate_limit_resets_in_s = headers.get(
+            'rate-limit-reset', headers.get('ratelimit-reset')
+        )
 
-        self.logger.debug(f"Remaining rate limit: {rate_limit_remain}/{rate_limit}" +
-                          (f" (reset in {rate_limit_resets_in_s}s)" if rate_limit_resets_in_s else " (no reset time)"))
+        self.logger.debug(
+            f"Remaining rate limit: {rate_limit_remain}/{rate_limit}"
+            + (
+                f" (reset in {rate_limit_resets_in_s}s)"
+                if rate_limit_resets_in_s
+                else " (no reset time)"
+            )
+        )
 
         if rate_limit_remain <= self.min_remain_rate_limit:
-            seconds_to_sleep = int(rate_limit_resets_in_s) if rate_limit_resets_in_s else 60
-            self.logger.warning(f"API rate limit exceeded (rate limit: {rate_limit}, remain: {rate_limit_remain}, "
-                                f"min remain limit: {self.min_remain_rate_limit}). "
-                                f"Tap will retry the data collection after {seconds_to_sleep} seconds.")
+            seconds_to_sleep = (
+                int(rate_limit_resets_in_s) if rate_limit_resets_in_s else 60
+            )
+            self.logger.warning(
+                f"API rate limit exceeded (rate limit: {rate_limit}, remain: {rate_limit_remain}, "
+                f"min remain limit: {self.min_remain_rate_limit}). "
+                f"Tap will retry the data collection after {seconds_to_sleep} seconds."
+            )
             sleep(seconds_to_sleep)
 
     def validate_response(self, response: requests.Response) -> None:
@@ -147,20 +172,24 @@ class IncrementalZendeskStream(ZendeskStream):
     pagination_size = 1000
 
     def get_url_params(
-            self,
-            context: dict | None,
-            next_page_token: Any | None,
+        self,
+        context: dict | None,
+        next_page_token: Any | None,
     ) -> dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization."""
         if next_page_token:
             return dict(parse_qsl(next_page_token.query))
         return {
             "per_page": self.pagination_size,
-            "start_time": self.get_start_time(context)
+            "start_time": self.get_start_time(context),
         }
 
     def get_new_paginator(self):
-        return IncrementalCursorBasedPaginator() if 'cursor.json' in self.path else IncrementalTimeBasedPaginator()
+        return (
+            IncrementalCursorBasedPaginator()
+            if 'cursor.json' in self.path
+            else IncrementalTimeBasedPaginator()
+        )
 
 
 class CursorPaginator(BaseHATEOASPaginator):
@@ -172,9 +201,9 @@ class NonIncrementalZendeskStream(ZendeskStream):
     pagination_size = 100
 
     def get_url_params(
-            self,
-            context: dict | None,
-            next_page_token: Any | None,
+        self,
+        context: dict | None,
+        next_page_token: Any | None,
     ) -> dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization."""
         if next_page_token:
