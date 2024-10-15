@@ -5,16 +5,15 @@ from datetime import datetime
 from typing import Any, Optional
 from urllib.parse import urlparse, parse_qs
 
-from singer_sdk import typing as th  # JSON Schema typing helpers
+from singer_sdk import typing as th
 
 from tap_zendesk.client import ZendeskStream, IncrementalZendeskStream, NonIncrementalZendeskStream
-from tap_zendesk.helpers.schema import ATTACHMENTS_PROPERTY, METADATA_PROPERTY
+from tap_zendesk.helpers.schema import ATTACHMENTS_PROPERTY, METADATA_PROPERTY, EXPLODED_ANY_TYPE
 
 
 class GroupsStream(NonIncrementalZendeskStream):
     name = "groups"
     path = "/api/v2/groups.json?exclude_deleted=false"
-    pagination_size = 50
     primary_keys = ["id"]
     records_jsonpath = "$.groups[*]"
     schema = th.PropertiesList(
@@ -128,7 +127,7 @@ class UsersStream(IncrementalZendeskStream):
     ).to_dict()
 
 
-TICKET_FIELDS = (
+TICKET_SCHEMA = (
         th.Property("id", th.IntegerType),
         th.Property("custom_status_id", th.IntegerType),
         th.Property("organization_id", th.IntegerType),
@@ -209,7 +208,7 @@ TICKET_FIELDS = (
         th.Property("custom_fields", th.ArrayType(
             th.ObjectType(
                 th.Property("id", th.IntegerType),
-                th.Property("value", th.AnyType)
+                th.Property("value", EXPLODED_ANY_TYPE)
             )
         )),
         th.Property("from_messaging_channel", th.BooleanType),
@@ -222,7 +221,7 @@ class TicketsStream(IncrementalZendeskStream):
     primary_keys = ["id"]
     replication_key = "updated_at"
     records_jsonpath = "$.tickets[*]"
-    schema = th.PropertiesList(*TICKET_FIELDS).to_dict()
+    schema = th.PropertiesList(*TICKET_SCHEMA).to_dict()
 
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
@@ -240,7 +239,7 @@ class TicketsSideloadingStream(IncrementalZendeskStream):
     replication_key = "updated_at"
     records_jsonpath = "$.tickets[*]"
     schema = th.PropertiesList(
-        *TICKET_FIELDS,
+        *TICKET_SCHEMA,
         th.Property("metric_events", th.CustomType({"type": ["object", "null"]})),
         th.Property("slas", th.CustomType({"type": ["object", "null"]})),
     ).to_dict()
