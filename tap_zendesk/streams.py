@@ -50,7 +50,7 @@ class OrganizationsStream(IncrementalZendeskStream):
         th.Property("domain_names", th.ArrayType(th.StringType)),
         th.Property("group_id", th.IntegerType),
         th.Property("id", th.IntegerType),
-        th.Property("external_id", th.IntegerType),
+        th.Property("external_id", th.StringType),
         th.Property("name", th.StringType),
         th.Property("notes", th.StringType),
         th.Property("organization_fields", th.CustomType({"type": ["object", "null"]})),
@@ -59,6 +59,7 @@ class OrganizationsStream(IncrementalZendeskStream):
         th.Property("tags", th.ArrayType(th.StringType)),
         th.Property("updated_at", th.DateTimeType),
         th.Property("url", th.StringType),
+        th.Property("deleted_at", th.StringType),
     ).to_dict()
 
 
