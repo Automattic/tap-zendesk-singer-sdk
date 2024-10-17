@@ -70,33 +70,50 @@ class ZendeskStream(RESTStream):
         if not response.content:
             raise ValueError(f"Received empty response for URL: {response.url}")
 
+        for record in extract_jsonpath(self.records_jsonpath, input=response.json()):
+            if not record:
+                self.logger.error("Received empty record")
+                continue
+            yield record
+
+    def get_records(self, context: dict | None) -> Iterable[dict[str, Any]]:
+        """Return a generator of record-type dictionary objects.
+
+        Each record emitted should be a dictionary of property names to their values.
+
+        Args:
+            context: Stream partition or context dictionary.
+
+        Yields:
+            One item per (possibly processed) record in the API.
+        """
+        for record in self.request_records(context):
+            if not record:
+                self.logger.error("Received empty record")
+                continue
+
+            if self._does_record_date_exceed_end_date(record):
+                return
+
+            transformed_record = self.post_process(record, context)
+            if transformed_record is None:
+                # Record filtered out during post_process()
+                continue
+            yield transformed_record
+
+
+    def _does_record_date_exceed_end_date(self, record: dict) -> bool:
+        """Check if the record date exceeds the end date."""
         end_date = (
             datetime.fromisoformat(self.config.get("end_date"))
             if self.config.get("end_date")
             else None
         )
 
-        if end_date and end_date.tzinfo is None:
-            end_date = end_date.replace(tzinfo=timezone.utc)
-
-        for record in extract_jsonpath(self.records_jsonpath, input=response.json()):
-            if not record:
-                self.logger.error("Received empty record")
-                continue
-
-            if self._does_record_date_exceed_end_date(
-                record, self.replication_key, end_date
-            ):
-                return
-
-            yield record
-
-    def _does_record_date_exceed_end_date(
-        self, record: dict, replication_key: str, end_date: datetime
-    ) -> bool:
-        """Check if the record date exceeds the end date."""
         if end_date:
-            record_date_str = record.get(replication_key)
+            if end_date.tzinfo is None:
+                end_date = end_date.replace(tzinfo=timezone.utc)
+            record_date_str = record.get(self.replication_key)
             if record_date_str:
                 record_date = datetime.fromisoformat(record_date_str)
                 if record_date.tzinfo is None:
@@ -168,13 +185,6 @@ class ZendeskStream(RESTStream):
         self.validate_response(response)
         self.logger.debug("Response received successfully.")
         return response
-
-    def validate_response(self, response: requests.Response) -> None:
-        # Check for 404 Not Found and log a warning
-        if (response.status_code == 404 and response.json().get('error') != "RecordNotFound") or response.status_code == 400:
-            raise Exception(f"Received {response.status_code} for URL: {response.url}")
-
-        super().validate_response(response)
 
 
 class IncrementalPaginator(BaseHATEOASPaginator):
