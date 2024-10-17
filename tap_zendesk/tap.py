@@ -42,6 +42,11 @@ class TapZendesk(Tap):
             th.IntegerType,
             description="Sets a limit to the remain rate that the tap will not will not overtake (it will wait for the reset)",
         ),
+        th.Property(
+            "sideloading",
+            th.ObjectType(th.Property('tickets', th.StringType)),
+            description="Include extra data to an specific stream with sideloading (e.g. {'tickets': 'metric_events,slas'})",
+        ),
     ).to_dict()
 
     def discover_streams(self) -> list[streams.ZendeskStream]:
@@ -56,7 +61,6 @@ class TapZendesk(Tap):
             streams.SatisfactionRatingsStream(self),
             streams.TagsStream(self),
             streams.TicketsStream(self),
-            streams.TicketsSideloadingStream(self),
             streams.TicketFieldsStream(self),
             streams.TicketEventsStream(self),
             streams.TicketAuditsStream(self),

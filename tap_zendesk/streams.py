@@ -147,136 +147,115 @@ class UsersStream(IncrementalZendeskStream):
     ).to_dict()
 
 
-TICKET_SCHEMA = (
-    th.Property("id", th.IntegerType),
-    th.Property("custom_status_id", th.IntegerType),
-    th.Property("organization_id", th.IntegerType),
-    th.Property("requester_id", th.IntegerType),
-    th.Property("problem_id", th.IntegerType),
-    th.Property("is_public", th.BooleanType),
-    th.Property("description", th.StringType),
-    th.Property("follower_ids", th.ArrayType(th.IntegerType)),
-    th.Property("submitter_id", th.IntegerType),
-    th.Property("generated_timestamp", th.IntegerType),
-    th.Property("brand_id", th.IntegerType),
-    th.Property("group_id", th.IntegerType),
-    th.Property("type", th.StringType),
-    th.Property("recipient", th.StringType),
-    th.Property("collaborator_ids", th.ArrayType(th.IntegerType)),
-    th.Property("tags", th.ArrayType(th.StringType)),
-    th.Property("has_incidents", th.BooleanType),
-    th.Property("created_at", th.DateTimeType),
-    th.Property("raw_subject", th.StringType),
-    th.Property("status", th.StringType),
-    th.Property("updated_at", th.DateTimeType),
-    th.Property("url", th.StringType),
-    th.Property("allow_channelback", th.BooleanType),
-    th.Property("allow_attachments", th.BooleanType),
-    th.Property("due_at", th.DateTimeType),
-    th.Property("followup_ids", th.ArrayType(th.IntegerType)),
-    th.Property("priority", th.StringType),
-    th.Property("assignee_id", th.IntegerType),
-    th.Property("subject", th.StringType),
-    th.Property("external_id", th.StringType),
-    th.Property(
-        "via",
-        th.ObjectType(
-            th.Property(
-                "source",
-                th.ObjectType(
-                    th.Property(
-                        "from",
-                        th.ObjectType(
-                            th.Property("name", th.StringType),
-                            th.Property("ticket_id", th.IntegerType),
-                            th.Property("address", th.StringType),
-                            th.Property("subject", th.StringType),
-                            th.Property("brand_id", th.StringType),
-                            th.Property("formatted_phone", th.StringType),
-                            th.Property("phone", th.StringType),
-                            th.Property("profile_url", th.StringType),
-                            th.Property("twitter_id", th.StringType),
-                            th.Property("username", th.StringType),
-                            th.Property("channel", th.StringType),
-                        ),
-                    ),
-                    th.Property(
-                        "to",
-                        th.ObjectType(
-                            th.Property("address", th.StringType),
-                            th.Property("name", th.StringType),
-                            th.Property("brand_id", th.StringType),
-                            th.Property("formatted_phone", th.StringType),
-                            th.Property("phone", th.StringType),
-                            th.Property("profile_url", th.StringType),
-                            th.Property("twitter_id", th.StringType),
-                            th.Property("username", th.StringType),
-                        ),
-                    ),
-                    th.Property("rel", th.StringType),
-                ),
-            ),
-            th.Property("channel", th.StringType),
-        ),
-    ),
-    th.Property("ticket_form_id", th.IntegerType),
-    th.Property(
-        "satisfaction_rating",
-        th.ObjectType(
-            th.Property("id", th.IntegerType),
-            th.Property("assignee_id", th.IntegerType),
-            th.Property("group_id", th.IntegerType),
-            th.Property("reason_id", th.IntegerType),
-            th.Property("requester_id", th.IntegerType),
-            th.Property("ticket_id", th.IntegerType),
-            th.Property("updated_at", th.DateTimeType),
-            th.Property("created_at", th.DateTimeType),
-            th.Property("url", th.StringType),
-            th.Property("score", th.StringType),
-            th.Property("reason", th.StringType),
-            th.Property("comment", th.StringType),
-        ),
-    ),
-    th.Property("sharing_agreement_ids", th.ArrayType(th.IntegerType)),
-    th.Property("email_cc_ids", th.ArrayType(th.IntegerType)),
-    th.Property("forum_topic_id", th.IntegerType),
-    th.Property(
-        "custom_fields",
-        th.ArrayType(
-            th.ObjectType(
-                th.Property("id", th.IntegerType),
-                th.Property("value", EXPLODED_ANY_TYPE),
-            )
-        ),
-    ),
-    th.Property("from_messaging_channel", th.BooleanType),
-)
-
-
 class TicketsStream(IncrementalZendeskStream):
     name = "tickets"
     path = "/api/v2/incremental/tickets/cursor.json"
     primary_keys = ["id"]
     replication_key = "updated_at"
     records_jsonpath = "$.tickets[*]"
-    schema = th.PropertiesList(*TICKET_SCHEMA).to_dict()
-
-    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
-        """Return a context dictionary for child streams."""
-        self.logger.debug(f"Creating child context for ticket_id: {record['id']}")
-        return {
-            "ticket_id": int(record["id"]),
-        }
-
-
-class TicketsSideloadingStream(IncrementalZendeskStream):
-    name = "tickets_sideloading"
-    path = "/api/v2/incremental/tickets/cursor.json?include=metric_events,slas"
-    primary_keys = ["id"]
-    replication_key = "updated_at"
-    records_jsonpath = "$.tickets[*]"
     schema = th.PropertiesList(
-        *TICKET_SCHEMA,
+        th.Property("id", th.IntegerType),
+        th.Property("custom_status_id", th.IntegerType),
+        th.Property("organization_id", th.IntegerType),
+        th.Property("requester_id", th.IntegerType),
+        th.Property("problem_id", th.IntegerType),
+        th.Property("is_public", th.BooleanType),
+        th.Property("description", th.StringType),
+        th.Property("follower_ids", th.ArrayType(th.IntegerType)),
+        th.Property("submitter_id", th.IntegerType),
+        th.Property("generated_timestamp", th.IntegerType),
+        th.Property("brand_id", th.IntegerType),
+        th.Property("group_id", th.IntegerType),
+        th.Property("type", th.StringType),
+        th.Property("recipient", th.StringType),
+        th.Property("collaborator_ids", th.ArrayType(th.IntegerType)),
+        th.Property("tags", th.ArrayType(th.StringType)),
+        th.Property("has_incidents", th.BooleanType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("raw_subject", th.StringType),
+        th.Property("status", th.StringType),
+        th.Property("updated_at", th.DateTimeType),
+        th.Property("url", th.StringType),
+        th.Property("allow_channelback", th.BooleanType),
+        th.Property("allow_attachments", th.BooleanType),
+        th.Property("due_at", th.DateTimeType),
+        th.Property("followup_ids", th.ArrayType(th.IntegerType)),
+        th.Property("priority", th.StringType),
+        th.Property("assignee_id", th.IntegerType),
+        th.Property("subject", th.StringType),
+        th.Property("external_id", th.StringType),
+        th.Property(
+            "via",
+            th.ObjectType(
+                th.Property(
+                    "source",
+                    th.ObjectType(
+                        th.Property(
+                            "from",
+                            th.ObjectType(
+                                th.Property("name", th.StringType),
+                                th.Property("ticket_id", th.IntegerType),
+                                th.Property("address", th.StringType),
+                                th.Property("subject", th.StringType),
+                                th.Property("brand_id", th.StringType),
+                                th.Property("formatted_phone", th.StringType),
+                                th.Property("phone", th.StringType),
+                                th.Property("profile_url", th.StringType),
+                                th.Property("twitter_id", th.StringType),
+                                th.Property("username", th.StringType),
+                                th.Property("channel", th.StringType),
+                            ),
+                        ),
+                        th.Property(
+                            "to",
+                            th.ObjectType(
+                                th.Property("address", th.StringType),
+                                th.Property("name", th.StringType),
+                                th.Property("brand_id", th.StringType),
+                                th.Property("formatted_phone", th.StringType),
+                                th.Property("phone", th.StringType),
+                                th.Property("profile_url", th.StringType),
+                                th.Property("twitter_id", th.StringType),
+                                th.Property("username", th.StringType),
+                            ),
+                        ),
+                        th.Property("rel", th.StringType),
+                    ),
+                ),
+                th.Property("channel", th.StringType),
+            ),
+        ),
+        th.Property("ticket_form_id", th.IntegerType),
+        th.Property(
+            "satisfaction_rating",
+            th.ObjectType(
+                th.Property("id", th.IntegerType),
+                th.Property("assignee_id", th.IntegerType),
+                th.Property("group_id", th.IntegerType),
+                th.Property("reason_id", th.IntegerType),
+                th.Property("requester_id", th.IntegerType),
+                th.Property("ticket_id", th.IntegerType),
+                th.Property("updated_at", th.DateTimeType),
+                th.Property("created_at", th.DateTimeType),
+                th.Property("url", th.StringType),
+                th.Property("score", th.StringType),
+                th.Property("reason", th.StringType),
+                th.Property("comment", th.StringType),
+            ),
+        ),
+        th.Property("sharing_agreement_ids", th.ArrayType(th.IntegerType)),
+        th.Property("email_cc_ids", th.ArrayType(th.IntegerType)),
+        th.Property("forum_topic_id", th.IntegerType),
+        th.Property(
+            "custom_fields",
+            th.ArrayType(
+                th.ObjectType(
+                    th.Property("id", th.IntegerType),
+                    th.Property("value", EXPLODED_ANY_TYPE),
+                )
+            ),
+        ),
+        th.Property("from_messaging_channel", th.BooleanType),
         th.Property("metric_events", th.CustomType({"type": ["object", "null"]})),
         th.Property("slas", th.CustomType({"type": ["object", "null"]})),
     ).to_dict()
@@ -288,6 +267,15 @@ class TicketsSideloadingStream(IncrementalZendeskStream):
             "ticket_id": int(record["id"]),
         }
 
+    def get_url_params(
+        self,
+        context: dict | None,
+        next_page_token: Any | None,
+    ) -> dict[str, Any]:
+        params = super().get_url_params(context, next_page_token)
+        if self.config.get('sideloading', {}).get(self.name):
+            params["include"] = self.config['sideloading'][self.name]
+        return params
 
 class TicketFieldsStream(NonIncrementalZendeskStream):
     name = "ticket_fields"
