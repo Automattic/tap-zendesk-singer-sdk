@@ -14,7 +14,6 @@ from tap_zendesk.client import (
     NonIncrementalZendeskStream,
 )
 from tap_zendesk.helpers.schema import (
-    ATTACHMENTS_PROPERTY,
     METADATA_PROPERTY,
     EXPLODED_ANY_TYPE,
 )
@@ -456,7 +455,7 @@ class TicketCommentsStream(NonIncrementalZendeskStream):
             ),
         ),
         METADATA_PROPERTY,
-        ATTACHMENTS_PROPERTY,
+        th.Property("attachments", th.ArrayType(th.ObjectType(additional_properties=True))),
     ).to_dict()
 
 

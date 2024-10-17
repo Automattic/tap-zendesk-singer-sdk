@@ -23,43 +23,6 @@ SYSTEM_PROPERTY = th.Property(
     ),
 )
 
-
-ATTACHMENTS_PROPERTY = th.Property(
-    "attachments",
-    th.ArrayType(
-        th.ObjectType(
-            th.Property("id", th.IntegerType),
-            th.Property("size", th.IntegerType),
-            th.Property("url", th.StringType),
-            th.Property("inline", th.BooleanType),
-            th.Property("height", th.IntegerType),
-            th.Property("width", th.IntegerType),
-            th.Property("content_url", th.StringType),
-            th.Property("mapped_content_url", th.StringType),
-            th.Property("content_type", th.StringType),
-            th.Property("file_name", th.StringType),
-            th.Property(
-                "thumbnails",
-                th.ArrayType(
-                    th.ObjectType(
-                        th.Property("id", th.IntegerType),
-                        th.Property("size", th.IntegerType),
-                        th.Property("url", th.StringType),
-                        th.Property("inline", th.BooleanType),
-                        th.Property("height", th.IntegerType),
-                        th.Property("width", th.IntegerType),
-                        th.Property("content_url", th.StringType),
-                        th.Property("mapped_content_url", th.StringType),
-                        th.Property("content_type", th.StringType),
-                        th.Property("file_name", th.StringType),
-                    )
-                ),
-            ),
-        )
-    ),
-)
-
-
 FLAGS_OPTIONS_PROPERTY = th.Property(
     "flags_options",
     th.ObjectType(

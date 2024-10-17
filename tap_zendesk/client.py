@@ -144,12 +144,36 @@ class ZendeskStream(RESTStream):
             )
             sleep(seconds_to_sleep)
 
-    def validate_response(self, response: requests.Response) -> None:
-        # Check for 404 Not Found and log a warning
-        if response.status_code == 404 or response.status_code == 400:
+    def _request(
+        self,
+        prepared_request: requests.PreparedRequest,
+        context: dict | None,
+    ) -> requests.Response:
+        response = self.requests_session.send(prepared_request, timeout=self.timeout)
+        self._write_request_duration_log(
+            endpoint=self.path,
+            response=response,
+            context=context,
+            extra_tags={"url": prepared_request.path_url}
+            if self._LOG_REQUEST_METRIC_URLS
+            else None,
+        )
+
+        if (response.status_code == 404 and response.json().get('error') != "RecordNotFound") or response.status_code == 400:
             raise Exception(f"Received {response.status_code} for URL: {response.url}")
+        elif response.status_code == 404:
+            return response
 
         self.check_rate_throttling(response)
+        self.validate_response(response)
+        self.logger.debug("Response received successfully.")
+        return response
+
+    def validate_response(self, response: requests.Response) -> None:
+        # Check for 404 Not Found and log a warning
+        if (response.status_code == 404 and response.json().get('error') != "RecordNotFound") or response.status_code == 400:
+            raise Exception(f"Received {response.status_code} for URL: {response.url}")
+
         super().validate_response(response)
 
 
