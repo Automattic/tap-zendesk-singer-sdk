@@ -342,10 +342,7 @@ class TicketAuditsStream(NonIncrementalZendeskStream):
         th.Property("created_at", th.DateTimeType),
         th.Property("author_id", th.IntegerType),
         METADATA_PROPERTY,
-        th.Property(
-            "events",
-            th.ArrayType(th.ObjectType(additional_properties=True)),
-        ),
+        th.Property("events", th.ArrayType(th.ObjectType(additional_properties=True))),
         th.Property(
             "via",
             th.ObjectType(
