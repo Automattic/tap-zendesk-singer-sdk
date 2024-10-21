@@ -13,10 +13,7 @@ from tap_zendesk.client import (
     IncrementalZendeskStream,
     NonIncrementalZendeskStream,
 )
-from tap_zendesk.helpers.schema import (
-    METADATA_PROPERTY,
-    EXPLODED_ANY_TYPE,
-)
+from tap_zendesk.helpers.schema import EXPLODED_ANY_TYPE
 
 
 class GroupsStream(NonIncrementalZendeskStream):
@@ -328,8 +325,8 @@ class TicketAuditsStream(NonIncrementalZendeskStream):
         th.Property("ticket_id", th.IntegerType),
         th.Property("created_at", th.DateTimeType),
         th.Property("author_id", th.IntegerType),
-        METADATA_PROPERTY,
-        th.Property("events", th.ArrayType(th.ObjectType(additional_properties=True))),
+        th.Property("metadata", th.CustomType({"type": ["object", "null"]})),
+        th.Property("events", th.CustomType({"type": ["array", "null"]})),
         th.Property(
             "via",
             th.ObjectType(
@@ -442,7 +439,7 @@ class TicketCommentsStream(NonIncrementalZendeskStream):
                 ),
             ),
         ),
-        METADATA_PROPERTY,
+        th.Property("metadata", th.CustomType({"type": ["object", "null"]})),
         th.Property("attachments", th.ArrayType(th.ObjectType(additional_properties=True))),
     ).to_dict()
 
@@ -524,6 +521,7 @@ class TicketMetricsStream(NonIncrementalZendeskStream):
         th.Property("assigned_at", th.DateTimeType),
         th.Property("solved_at", th.DateTimeType),
         th.Property("assignee_updated_at", th.DateTimeType),
+        th.Property("custom_status_updated_at", th.DateTimeType),
     ).to_dict()
 
 

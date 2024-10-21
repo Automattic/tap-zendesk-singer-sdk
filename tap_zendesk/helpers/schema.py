@@ -38,16 +38,3 @@ FLAGS_OPTIONS_PROPERTY = th.Property(
         ),
     ),
 )
-
-
-METADATA_PROPERTY = th.Property(
-    "metadata",
-    th.ObjectType(
-        th.Property("custom", th.CustomType({'type': ['string', 'null', 'object']})),
-        th.Property("trusted", th.BooleanType),
-        th.Property("notifications_suppressed_for", th.ArrayType(th.IntegerType)),
-        FLAGS_OPTIONS_PROPERTY,
-        th.Property("flags", th.ArrayType(th.IntegerType)),
-        SYSTEM_PROPERTY,
-    ),
-)
