@@ -233,6 +233,9 @@ class CursorPaginator(BaseHATEOASPaginator):
     def get_next_url(self, response: Response) -> str:
         return response.json().get("links", {}).get("next", {})
 
+    def has_more(self, response: Response) -> bool:
+        return bool(response.json().get("meta", {}).get("has_more"))
+
 
 class NonIncrementalZendeskStream(ZendeskStream):
     pagination_size = 100
