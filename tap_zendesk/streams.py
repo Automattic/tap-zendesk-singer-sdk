@@ -364,6 +364,10 @@ class TicketAuditsStream(NonIncrementalZendeskStream):
         ),
     ).to_dict()
 
+    def post_process(self, row: dict, context: dict | None = None) -> dict | None:
+        row["ticket_id"] = (context or {}).get("ticket_id")
+        return super().post_process(row, context)
+
 
 class TicketEventsStream(IncrementalZendeskStream):
     name = "ticket_events"
@@ -442,6 +446,11 @@ class TicketCommentsStream(NonIncrementalZendeskStream):
         th.Property("metadata", th.CustomType({"type": ["object", "null"]})),
         th.Property("attachments", th.ArrayType(th.ObjectType(additional_properties=True))),
     ).to_dict()
+
+    def post_process(self, row: dict, context: dict | None = None) -> dict | None:
+        row["ticket_id"] = (context or {}).get("ticket_id")
+        return super().post_process(row, context)
+
 
 
 class TicketMetricsStream(NonIncrementalZendeskStream):
@@ -523,6 +532,10 @@ class TicketMetricsStream(NonIncrementalZendeskStream):
         th.Property("assignee_updated_at", th.DateTimeType),
         th.Property("custom_status_updated_at", th.DateTimeType),
     ).to_dict()
+
+    def post_process(self, row: dict, context: dict | None = None) -> dict | None:
+        row["ticket_id"] = (context or {}).get("ticket_id")
+        return super().post_process(row, context)
 
 
 class TicketMetricEventsStream(IncrementalZendeskStream):
