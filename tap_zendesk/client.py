@@ -141,7 +141,7 @@ class ZendeskStream(RESTStream):
             'rate-limit-reset', headers.get('ratelimit-reset')
         )
 
-        self.logger.debug(
+        self.logger.info(
             f"Remaining rate limit: {rate_limit_remain}/{rate_limit}"
             + (
                 f" (reset in {rate_limit_resets_in_s}s)"
