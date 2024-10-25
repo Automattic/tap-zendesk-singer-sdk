@@ -141,7 +141,7 @@ class ZendeskStream(RESTStream):
             'rate-limit-reset', headers.get('ratelimit-reset')
         )
 
-        self.logger.info(
+        self.logger.debug(
             f"Remaining rate limit: {rate_limit_remain}/{rate_limit}"
             + (
                 f" (reset in {rate_limit_resets_in_s}s)"
@@ -157,7 +157,7 @@ class ZendeskStream(RESTStream):
             self.logger.warning(
                 f"API rate limit exceeded (rate limit: {rate_limit}, remain: {rate_limit_remain}, "
                 f"min remain limit: {self.min_remain_rate_limit}). "
-                f"Tap will retry the data collection after {seconds_to_sleep} seconds."
+                f"Tap will continue the data collection after {seconds_to_sleep} seconds."
             )
             sleep(seconds_to_sleep)
 
