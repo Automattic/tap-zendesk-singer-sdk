@@ -5,7 +5,6 @@ from __future__ import annotations
 from singer_sdk import Tap
 from singer_sdk import typing as th  # JSON schema typing helpers
 
-# TODO: Import your custom stream types here:
 from tap_zendesk import streams
 
 
@@ -14,18 +13,17 @@ class TapZendesk(Tap):
 
     name = "tap-zendesk"
 
-    # TODO: Update this section with the actual config values you expect:
     config_jsonschema = th.PropertiesList(
         th.Property(
-            "auth_token",
+            "api_token",
             th.StringType,
             required=True,
             secret=True,  # Flag config as protected.
             description="The token to authenticate against the API service",
         ),
         th.Property(
-            "project_ids",
-            th.ArrayType(th.StringType),
+            "subdomain",
+            th.StringType,
             required=True,
             description="Project IDs to replicate",
         ),
@@ -35,10 +33,19 @@ class TapZendesk(Tap):
             description="The earliest record date to sync",
         ),
         th.Property(
-            "api_url",
-            th.StringType,
-            default="https://api.mysample.com",
-            description="The url for the API service",
+            "end_date",
+            th.DateTimeType,
+            description="The latest record date to sync",
+        ),
+        th.Property(
+            "min_remain_rate_limit",
+            th.IntegerType,
+            description="Sets a limit to the remain rate that the tap will not will not overtake (it will wait for the reset)",
+        ),
+        th.Property(
+            "sideloading",
+            th.ObjectType(th.Property('tickets', th.StringType)),
+            description="Include extra data to an specific stream with sideloading (e.g. {'tickets': 'metric_events,slas'})",
         ),
     ).to_dict()
 
@@ -49,8 +56,19 @@ class TapZendesk(Tap):
             A list of discovered streams.
         """
         return [
-            streams.GroupsStream(self),
+            streams.OrganizationsStream(self),
+            streams.SlaPoliciesStream(self),
+            streams.SatisfactionRatingsStream(self),
+            streams.TagsStream(self),
+            streams.TicketsStream(self),
+            streams.TicketFieldsStream(self),
+            streams.TicketEventsStream(self),
+            streams.TicketAuditsStream(self),
+            streams.TicketCommentsStream(self),
+            streams.TicketMetricsStream(self),
+            streams.TicketMetricEventsStream(self),
             streams.UsersStream(self),
+            streams.GroupsStream(self),
         ]
 
 
