@@ -47,21 +47,10 @@ plugins:
       label: Minimum Remain Rate Limit
       description: Sets a limit to the remain rate that the tap will not will not
         overtake (it will wait for the reset)
-    select:
-      - tickets.*
-      - tickets_sideloading.*
-      # - ticket_audits.*
-      - ticket_metric_events.*
-      # - ticket_metrics.*
-      - ticket_events.*
-      - sla_policies.*
-      - groups.*
-      - organizations.*
-      # - ticket_comments.*
-      - ticket_fields.*
-      - satisfaction_ratings.*
-      - tags.*
-      - users.*
+    - name: sideloading
+      kind: object
+      label: Include sideloading
+      description: "Include extra data to an specific stream with sideloading (e.g. {'tickets': 'metric_events,slas'})"
   loaders:
   - name: target-parquet
     variant: automattic
