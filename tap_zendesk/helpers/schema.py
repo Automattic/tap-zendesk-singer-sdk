@@ -1,14 +1,6 @@
 from singer_sdk import typing as th
 
 
-EXPLODED_ANY_TYPE = th.CustomType(
-    {
-        'type': ['string', 'object', 'array', 'boolean', 'number', 'null'],
-        'items': {'type': ['string', 'object', 'number', 'null']},
-    }
-)
-
-
 SYSTEM_PROPERTY = th.Property(
     "system",
     th.ObjectType(

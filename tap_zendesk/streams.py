@@ -13,8 +13,6 @@ from tap_zendesk.client import (
     IncrementalZendeskStream,
     NonIncrementalZendeskStream,
 )
-from tap_zendesk.helpers.schema import EXPLODED_ANY_TYPE
-
 
 class GroupsStream(NonIncrementalZendeskStream):
     name = "groups"
@@ -243,15 +241,7 @@ class TicketsStream(IncrementalZendeskStream):
         th.Property("sharing_agreement_ids", th.ArrayType(th.IntegerType)),
         th.Property("email_cc_ids", th.ArrayType(th.IntegerType)),
         th.Property("forum_topic_id", th.IntegerType),
-        th.Property(
-            "custom_fields",
-            th.ArrayType(
-                th.ObjectType(
-                    th.Property("id", th.IntegerType),
-                    th.Property("value", EXPLODED_ANY_TYPE),
-                )
-            ),
-        ),
+        th.Property("custom_fields", th.CustomType({"type": ["array", "null"]})),
         th.Property("from_messaging_channel", th.BooleanType),
         th.Property("metric_events", th.CustomType({"type": ["object", "null"]})),
         th.Property("slas", th.CustomType({"type": ["object", "null"]})),
