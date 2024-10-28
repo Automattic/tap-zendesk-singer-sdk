@@ -181,8 +181,8 @@ class ZendeskStream(RESTStream):
         elif response.status_code == 404:
             return response
 
-        self.check_rate_throttling(response)
         self.validate_response(response)
+        self.check_rate_throttling(response)
         self.logger.debug("Response received successfully.")
         return response
 
