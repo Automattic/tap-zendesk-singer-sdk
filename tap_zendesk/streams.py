@@ -179,47 +179,7 @@ class TicketsStream(IncrementalZendeskStream):
         th.Property("assignee_id", th.IntegerType),
         th.Property("subject", th.StringType),
         th.Property("external_id", th.StringType),
-        th.Property(
-            "via",
-            th.ObjectType(
-                th.Property(
-                    "source",
-                    th.ObjectType(
-                        th.Property(
-                            "from",
-                            th.ObjectType(
-                                th.Property("name", th.StringType),
-                                th.Property("ticket_id", th.IntegerType),
-                                th.Property("address", th.StringType),
-                                th.Property("subject", th.StringType),
-                                th.Property("brand_id", th.StringType),
-                                th.Property("formatted_phone", th.StringType),
-                                th.Property("phone", th.StringType),
-                                th.Property("profile_url", th.StringType),
-                                th.Property("twitter_id", th.StringType),
-                                th.Property("username", th.StringType),
-                                th.Property("channel", th.StringType),
-                            ),
-                        ),
-                        th.Property(
-                            "to",
-                            th.ObjectType(
-                                th.Property("address", th.StringType),
-                                th.Property("name", th.StringType),
-                                th.Property("brand_id", th.StringType),
-                                th.Property("formatted_phone", th.StringType),
-                                th.Property("phone", th.StringType),
-                                th.Property("profile_url", th.StringType),
-                                th.Property("twitter_id", th.StringType),
-                                th.Property("username", th.StringType),
-                            ),
-                        ),
-                        th.Property("rel", th.StringType),
-                    ),
-                ),
-                th.Property("channel", th.StringType),
-            ),
-        ),
+        th.Property("via",th.CustomType({"type": ["object", "null"]})),
         th.Property("ticket_form_id", th.IntegerType),
         th.Property(
             "satisfaction_rating",
@@ -317,41 +277,7 @@ class TicketAuditsStream(NonIncrementalZendeskStream):
         th.Property("author_id", th.IntegerType),
         th.Property("metadata", th.CustomType({"type": ["object", "null"]})),
         th.Property("events", th.CustomType({"type": ["array", "null"]})),
-        th.Property(
-            "via",
-            th.ObjectType(
-                th.Property("channel", th.StringType),
-                th.Property(
-                    "source",
-                    th.ObjectType(
-                        th.Property(
-                            "from",
-                            th.ObjectType(
-                                th.Property("ticket_ids", th.ArrayType(th.IntegerType)),
-                                th.Property("subject", th.StringType),
-                                th.Property("name", th.StringType),
-                                th.Property("address", th.StringType),
-                                th.Property(
-                                    "original_recipients", th.ArrayType(th.StringType)
-                                ),
-                                th.Property("id", th.IntegerType),
-                                th.Property("ticket_id", th.IntegerType),
-                                th.Property("deleted", th.BooleanType),
-                                th.Property("title", th.StringType),
-                            ),
-                        ),
-                        th.Property(
-                            "to",
-                            th.ObjectType(
-                                th.Property("name", th.StringType),
-                                th.Property("address", th.StringType),
-                            ),
-                        ),
-                        th.Property("rel", th.StringType),
-                    ),
-                ),
-            ),
-        ),
+        th.Property("via",th.CustomType({"type": ["object", "null"]})),
     ).to_dict()
 
     def post_process(self, row: dict, context: dict | None = None) -> dict | None:
@@ -398,43 +324,9 @@ class TicketCommentsStream(NonIncrementalZendeskStream):
         th.Property("public", th.BooleanType),
         th.Property("audit_id", th.IntegerType),
         th.Property("author_id", th.IntegerType),
-        th.Property(
-            "via",
-            th.ObjectType(
-                th.Property("channel", th.StringType),
-                th.Property(
-                    "source",
-                    th.ObjectType(
-                        th.Property(
-                            "from",
-                            th.ObjectType(
-                                th.Property("ticket_ids", th.ArrayType(th.IntegerType)),
-                                th.Property("subject", th.StringType),
-                                th.Property("name", th.StringType),
-                                th.Property("address", th.StringType),
-                                th.Property(
-                                    "original_recipients", th.ArrayType(th.StringType)
-                                ),
-                                th.Property("id", th.IntegerType),
-                                th.Property("ticket_id", th.IntegerType),
-                                th.Property("deleted", th.BooleanType),
-                                th.Property("title", th.StringType),
-                            ),
-                        ),
-                        th.Property(
-                            "to",
-                            th.ObjectType(
-                                th.Property("name", th.StringType),
-                                th.Property("address", th.StringType),
-                            ),
-                        ),
-                        th.Property("rel", th.StringType),
-                    ),
-                ),
-            ),
-        ),
+        th.Property("via",th.CustomType({"type": ["object", "null"]})),
         th.Property("metadata", th.CustomType({"type": ["object", "null"]})),
-        th.Property("attachments", th.ArrayType(th.ObjectType(additional_properties=True))),
+        th.Property("attachments", th.CustomType({"type": ["array", "null"]})),
     ).to_dict()
 
     def post_process(self, row: dict, context: dict | None = None) -> dict | None:
