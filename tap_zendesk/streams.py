@@ -537,3 +537,28 @@ class SlaPoliciesStream(ZendeskStream):
         if next_page_token:
             params = parse_qs(urlparse(next_page_token).query)
         return params
+
+class BrandsStream(NonIncrementalZendeskStream):
+    name = "brands"
+    path = "/api/v2/brands.json"
+    primary_keys = ["id"]
+    records_jsonpath = "$.brands[*]"
+    pagination_size = 10
+    schema = th.PropertiesList(
+        th.Property("active", th.BooleanType),
+        th.Property("brand_url", th.StringType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("default", th.BooleanType),
+        th.Property("has_help_center", th.BooleanType),
+        th.Property("help_center_state", th.StringType),
+        th.Property("host_mapping", th.StringType),
+        th.Property("id", th.IntegerType),
+        th.Property("is_deleted", th.BooleanType),
+        th.Property("logo", th.CustomType({"type": ["object", "null"]})),
+        th.Property("name", th.StringType),
+        th.Property("signature_template", th.StringType),
+        th.Property("subdomain", th.StringType),
+        th.Property("ticket_form_ids", th.ArrayType(th.IntegerType)),
+        th.Property("updated_at", th.DateTimeType),
+        th.Property("url", th.StringType),
+    ).to_dict()
