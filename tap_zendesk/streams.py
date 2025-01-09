@@ -543,7 +543,6 @@ class BrandsStream(NonIncrementalZendeskStream):
     path = "/api/v2/brands.json"
     primary_keys = ["id"]
     records_jsonpath = "$.brands[*]"
-    pagination_size = 10
     schema = th.PropertiesList(
         th.Property("active", th.BooleanType),
         th.Property("brand_url", th.StringType),
