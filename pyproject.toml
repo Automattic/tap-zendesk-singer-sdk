@@ -22,13 +22,13 @@ license = "Apache-2.0"
 [tool.poetry.dependencies]
 python = ">=3.9"
 importlib-resources = { version = "==6.4.*", python = "<3.9" }
-singer-sdk = { git = "https://github.com/joaopamaral/sdk.git", branch = "fix/avoid-write-empty-state" }
+singer-sdk = { version="~=0.44.1", extras = [] }
 fs-s3fs = { version = "~=1.1.1", optional = true }
 requests = "~=2.32.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.4.0"
-singer-sdk = { git = "https://github.com/joaopamaral/sdk.git", branch = "fix/avoid-write-empty-state",  extras = ["testing"] }
+singer-sdk = { version="~=0.44.1", extras = ["testing"] }
 
 [tool.poetry.extras]
 s3 = ["fs-s3fs"]
