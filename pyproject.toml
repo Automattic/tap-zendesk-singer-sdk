@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tap-zendesk"
-version = "0.0.4"
+version = "0.1.0"
 description = "`tap-zendesk` is a Singer tap for Zendesk, built with the Meltano Singer SDK."
 readme = "README.md"
 authors = ["Mahangu Weerasinghe <mahangu@gmail.com>"]
@@ -20,15 +20,15 @@ classifiers = [
 license = "Apache-2.0"
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+python = ">=3.9"
 importlib-resources = { version = "==6.4.*", python = "<3.9" }
-singer-sdk = { version="~=0.41.0", extras = [] }
+singer-sdk = { version="~=0.44.1", extras = [] }
 fs-s3fs = { version = "~=1.1.1", optional = true }
 requests = "~=2.32.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.4.0"
-singer-sdk = { version="~=0.41.0", extras = ["testing"] }
+singer-sdk = { version="~=0.44.1", extras = ["testing"] }
 
 [tool.poetry.extras]
 s3 = ["fs-s3fs"]
