@@ -228,6 +228,9 @@ class IncrementalZendeskStream(ZendeskStream):
             else IncrementalTimeBasedPaginator()
         )
 
+    def backoff_max_tries(self) -> int:
+        return 10
+
 
 class CursorPaginator(BaseHATEOASPaginator):
     def get_next_url(self, response: Response) -> str:
