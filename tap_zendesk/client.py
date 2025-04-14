@@ -229,6 +229,11 @@ class IncrementalZendeskStream(ZendeskStream):
         )
 
     def backoff_max_tries(self) -> int:
+        """The number of attempts before giving up when retrying requests.
+
+        Returns:
+            Number of max retries.
+        """
         return 10
 
 
