@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tap-zendesk"
-version = "0.1.0"
+version = "0.1.1"
 description = "`tap-zendesk` is a Singer tap for Zendesk, built with the Meltano Singer SDK."
 readme = "README.md"
 authors = ["Mahangu Weerasinghe <mahangu@gmail.com>"]
