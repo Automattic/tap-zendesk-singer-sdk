@@ -115,6 +115,7 @@ class TicketsStream(IncrementalZendeskStream):
     primary_keys = ["id"]
     replication_key = "updated_at"
     records_jsonpath = "$.tickets[*]"
+    is_sorted = True
     schema = th.PropertiesList(
         th.Property("id", th.IntegerType),
         th.Property("custom_status_id", th.IntegerType),
