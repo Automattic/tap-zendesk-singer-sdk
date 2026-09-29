@@ -53,7 +53,7 @@ plugins:
       description: "Include extra data to an specific stream with sideloading (e.g. {'tickets': 'metric_events,slas'})"
     - name: skip_unchanged_closed_tickets
       kind: boolean
-      value: true
+      value: false
       label: Skip unchanged closed tickets
       description: Skip closed tickets whose updated_at did not move past the stored
         bookmark. Zendesk re-exports closed tickets after system-side rewrites (e.g.

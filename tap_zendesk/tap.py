@@ -50,7 +50,7 @@ class TapZendesk(Tap):
         th.Property(
             "skip_unchanged_closed_tickets",
             th.BooleanType,
-            default=True,
+            default=False,
             description=(
                 "Skip closed tickets whose updated_at did not move past the stored "
                 "bookmark. The incremental ticket export filters on "

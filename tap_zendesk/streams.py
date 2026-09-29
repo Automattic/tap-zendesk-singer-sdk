@@ -207,7 +207,7 @@ class TicketsStream(IncrementalZendeskStream):
         must be loaded.
         """
         if (
-            self.config.get("skip_unchanged_closed_tickets", True)
+            self.config.get("skip_unchanged_closed_tickets", False)
             and row.get("status") == "closed"
             and self._is_at_or_before_bookmark(row.get("updated_at"), context)
         ):

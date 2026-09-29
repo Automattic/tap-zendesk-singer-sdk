@@ -10,7 +10,7 @@ BOOKMARK = datetime(2026, 9, 28, 12, 9, 25, tzinfo=timezone.utc)
 class TestTicketsStreamSkipUnchangedClosed(unittest.TestCase):
     def setUp(self):
         self.tap_mock = MagicMock()
-        self.tap_mock.config = {}
+        self.tap_mock.config = {"skip_unchanged_closed_tickets": True}
         self.stream = TicketsStream(self.tap_mock)
 
     def _post_process(self, row, bookmark=BOOKMARK):
@@ -49,6 +49,14 @@ class TestTicketsStreamSkipUnchangedClosed(unittest.TestCase):
         row = {"id": 1, "status": "closed", "updated_at": "2026-07-01T00:01:21Z"}
         with patch.object(TicketsStream, "get_starting_timestamp", return_value=BOOKMARK):
             self.assertEqual(stream.post_process(row, None), row)
+
+    def test_setting_is_off_by_default(self):
+        self.tap_mock.config = {}
+        stream = TicketsStream(self.tap_mock)
+        row = {"id": 1, "status": "closed", "updated_at": "2026-07-01T00:01:21Z"}
+        with patch.object(TicketsStream, "get_starting_timestamp", return_value=BOOKMARK):
+            self.assertEqual(stream.post_process(row, None), row)
+        self.assertEqual(stream.skipped_unchanged_closed, 0)
 
     def test_naive_bookmark_is_treated_as_utc(self):
         row = {"id": 1, "status": "closed", "updated_at": "2026-09-28T12:09:24Z"}
