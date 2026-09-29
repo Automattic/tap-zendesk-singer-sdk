@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 from urllib.parse import urlparse, parse_qs
 
@@ -174,6 +174,10 @@ class TicketsStream(IncrementalZendeskStream):
         th.Property("slas", th.CustomType({"type": ["object", "null"]})),
     ).to_dict()
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.skipped_unchanged_closed = 0
+
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Return a context dictionary for child streams."""
         self.logger.debug(f"Creating child context for ticket_id: {record['id']}")
@@ -190,6 +194,50 @@ class TicketsStream(IncrementalZendeskStream):
         if self.config.get('sideloading', {}).get(self.name):
             params["include"] = self.config['sideloading'][self.name]
         return params
+
+    def post_process(self, row: dict, context: dict | None = None) -> dict | None:
+        """Drop closed tickets that Zendesk re-exported without changing them.
+
+        The incremental export filters on ``generated_timestamp``, which Zendesk
+        also bumps for system-side rewrites of closed tickets (custom field
+        backfills, reindexing) that leave ``updated_at`` untouched. Closed tickets
+        are immutable, so such a record carries nothing new, and dropping it here
+        also skips its child streams (audits, comments, metrics). Deleted tickets
+        are never dropped: their scrub leaves ``updated_at`` untouched too, but it
+        must be loaded.
+        """
+        if (
+            self.config.get("skip_unchanged_closed_tickets", True)
+            and row.get("status") == "closed"
+            and self._is_at_or_before_bookmark(row.get("updated_at"), context)
+        ):
+            self.skipped_unchanged_closed += 1
+            if self.skipped_unchanged_closed % 1000 == 0:
+                self.logger.info(
+                    "Skipped %d closed tickets re-exported without updated_at change",
+                    self.skipped_unchanged_closed,
+                )
+            return None
+        return super().post_process(row, context)
+
+    def _is_at_or_before_bookmark(
+        self,
+        updated_at: str | None,
+        context: dict | None,
+    ) -> bool:
+        """Return True when ``updated_at`` is not newer than the stored bookmark."""
+        if not updated_at:
+            return False
+        bookmark = self.get_starting_timestamp(context)
+        if bookmark is None:
+            return False
+        record_time = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+        if record_time.tzinfo is None:
+            record_time = record_time.replace(tzinfo=timezone.utc)
+        if bookmark.tzinfo is None:
+            bookmark = bookmark.replace(tzinfo=timezone.utc)
+        return record_time <= bookmark
+
 
 class TicketFieldsStream(NonIncrementalZendeskStream):
     name = "ticket_fields"

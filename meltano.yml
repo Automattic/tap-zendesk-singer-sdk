@@ -51,6 +51,14 @@ plugins:
       kind: object
       label: Include sideloading
       description: "Include extra data to an specific stream with sideloading (e.g. {'tickets': 'metric_events,slas'})"
+    - name: skip_unchanged_closed_tickets
+      kind: boolean
+      value: true
+      label: Skip unchanged closed tickets
+      description: Skip closed tickets whose updated_at did not move past the stored
+        bookmark. Zendesk re-exports closed tickets after system-side rewrites (e.g.
+        custom field backfills) without changing them; skipping them avoids re-fetching
+        audits, comments and metrics for immutable tickets.
   loaders:
   - name: target-parquet
     variant: automattic
