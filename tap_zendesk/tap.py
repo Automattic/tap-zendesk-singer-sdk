@@ -47,6 +47,19 @@ class TapZendesk(Tap):
             th.ObjectType(th.Property('tickets', th.StringType)),
             description="Include extra data to an specific stream with sideloading (e.g. {'tickets': 'metric_events,slas'})",
         ),
+        th.Property(
+            "skip_unchanged_closed_tickets",
+            th.BooleanType,
+            default=False,
+            description=(
+                "Skip closed tickets whose updated_at did not move past the stored "
+                "bookmark. The incremental ticket export filters on "
+                "generated_timestamp, which Zendesk also bumps for system-side "
+                "rewrites of closed tickets (e.g. custom field backfills) that "
+                "change nothing; skipping them avoids re-fetching audits, comments "
+                "and metrics for tickets that are immutable."
+            ),
+        ),
     ).to_dict()
 
     def discover_streams(self) -> list[streams.ZendeskStream]:
