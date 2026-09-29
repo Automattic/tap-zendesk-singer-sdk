@@ -22,9 +22,13 @@ class TestTicketsStreamSkipUnchangedClosed(unittest.TestCase):
         self.assertIsNone(self._post_process(row))
         self.assertEqual(self.stream.skipped_unchanged_closed, 1)
 
-    def test_closed_ticket_updated_exactly_at_bookmark_is_dropped(self):
+    def test_closed_ticket_updated_exactly_at_bookmark_is_kept(self):
+        # updated_at has second granularity: a ticket updated in the same second
+        # as the bookmark record may only show up in the next export, so it must
+        # not be dropped. One duplicate fetch beats a lost record.
         row = {"id": 1, "status": "closed", "updated_at": "2026-09-28T12:09:25+00:00"}
-        self.assertIsNone(self._post_process(row))
+        self.assertEqual(self._post_process(row), row)
+        self.assertEqual(self.stream.skipped_unchanged_closed, 0)
 
     def test_closed_ticket_updated_after_bookmark_is_kept(self):
         row = {"id": 1, "status": "closed", "updated_at": "2026-09-28T12:09:26Z"}
@@ -61,6 +65,10 @@ class TestTicketsStreamSkipUnchangedClosed(unittest.TestCase):
     def test_naive_bookmark_is_treated_as_utc(self):
         row = {"id": 1, "status": "closed", "updated_at": "2026-09-28T12:09:24Z"}
         self.assertIsNone(self._post_process(row, bookmark=BOOKMARK.replace(tzinfo=None)))
+
+    def test_closed_ticket_one_second_before_bookmark_is_dropped(self):
+        row = {"id": 1, "status": "closed", "updated_at": "2026-09-28T12:09:24Z"}
+        self.assertIsNone(self._post_process(row))
 
     def test_missing_updated_at_is_kept(self):
         row = {"id": 1, "status": "closed"}

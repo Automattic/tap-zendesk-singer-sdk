@@ -209,7 +209,7 @@ class TicketsStream(IncrementalZendeskStream):
         if (
             self.config.get("skip_unchanged_closed_tickets", False)
             and row.get("status") == "closed"
-            and self._is_at_or_before_bookmark(row.get("updated_at"), context)
+            and self._is_before_bookmark(row.get("updated_at"), context)
         ):
             self.skipped_unchanged_closed += 1
             if self.skipped_unchanged_closed % 1000 == 0:
@@ -220,12 +220,18 @@ class TicketsStream(IncrementalZendeskStream):
             return None
         return super().post_process(row, context)
 
-    def _is_at_or_before_bookmark(
+    def _is_before_bookmark(
         self,
         updated_at: str | None,
         context: dict | None,
     ) -> bool:
-        """Return True when ``updated_at`` is not newer than the stored bookmark."""
+        """Return True when ``updated_at`` is strictly older than the stored bookmark.
+
+        Strict comparison on purpose: ``updated_at`` has second granularity, so a
+        ticket updated in the same second as the bookmark record but exported
+        later (the export withholds its most recent minute) would otherwise be
+        dropped. Keeping it costs one duplicate fetch; dropping it loses data.
+        """
         if not updated_at:
             return False
         bookmark = self.get_starting_timestamp(context)
@@ -236,7 +242,7 @@ class TicketsStream(IncrementalZendeskStream):
             record_time = record_time.replace(tzinfo=timezone.utc)
         if bookmark.tzinfo is None:
             bookmark = bookmark.replace(tzinfo=timezone.utc)
-        return record_time <= bookmark
+        return record_time < bookmark
 
 
 class TicketFieldsStream(NonIncrementalZendeskStream):
